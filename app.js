@@ -11,7 +11,7 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
   const KEY = { cur: 'jeju.v1.current', mine: 'jeju.v1.mine', box: 'jeju.v1.box', tab: 'jeju.v1.tab', theme: 'jeju.v1.theme', name: 'jeju.v1.name', viewing: 'jeju.v1.viewing', mode: 'jeju.v1.mode' };
-  const DEFAULT_CFG = { arr: '08:30', pick: 50, dep: '18:00', ret: 90, start: '08:30', pace: 1, meals: true };
+  const DEFAULT_CFG = { arr: '10:00', pick: 50, dep: '17:00', ret: 90, start: '08:30', pace: 1, meals: true };
   const WISH = [
     { k: 'tang', label: '귤밭', test: p => p.cat === 'tang' },
     { k: 'kart', label: '카트', test: p => p.cat === 'kart' },
@@ -226,7 +226,7 @@
       if (r.type === 'start') return `<li class="tl-start"><span class="tt">${hm(r.t)}</span><span class="dot"></span>${esc(r.label)}${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}</li>`;
       if (r.type === 'end') return `<li class="tl-end"><span class="tt">${hm(r.t)}</span><span class="dot"></span>${esc(r.label)}</li>`;
       if (r.type === 'drive') return `<li class="tl-drive"><span class="dot"></span>차로 ${r.min}분 · 약 ${E.kmOf(r.min)}km → ${esc(r.to.kind ? r.to.name : zshort(r.to.zone))}</li>`;
-      if (r.type === 'meal') return `<li class="tl-meal"><span class="tt">${hm(r.t)}</span><span class="dot"></span><span class="box">${r.kind === 'lunch' ? '점심' : '저녁'} ${r.kind === 'lunch' ? 60 : 80}분 · ${esc(r.note || '근처 식당')}</span></li>`;
+      if (r.type === 'meal') return `<li class="tl-meal"><span class="tt">${hm(r.t)}</span><span class="dot"></span><span class="box">${r.kind === 'lunch' ? '점심' : '저녁'} ${r.end - r.t}분 · ${esc(r.note || '근처 식당')}</span></li>`;
       if (r.type === 'free') return (r.end - r.t < 15) ? '' : `<li class="tl-free"><span class="tt">${hm(r.t)}</span><span class="dot"></span>자유시간 ${dstr(r.end - r.t)} · ${esc(r.at.kind === 'lodge' ? '숙소에서 쉬기' : '주변 산책·카페')}</li>`;
       const p = r.p, it = r.it, k = r.k, v = r.v;
       const g = E.BYGRP[p.grp] || [];

@@ -253,26 +253,26 @@
   /* ───────── 베스트 동선 10 (알고리즘이 실시간 채점) ───────── */
   const it = (p, o) => (o ? { p, o } : { p });
   const PLANS = [
-    { id: 'b1', title: '시계 방향 한 바퀴 · 서귀포 2박', lodge: ['SEO', 'SEO'], concept: '1일차 서쪽(운진항 마라도·송악산·모슬포 방어회) → 2일차 하효항 오전 방어낚시 뒤 동쪽 우도 → 3일차 9.81파크·애월을 돌아 공항.', pros: '서귀포 시내는 하효항 15분, 마라도·우도 항구 모두 50분 안팎. 올레시장이 가까워 저녁 해결이 쉽다.', cons: '2일차에 배를 두 번 타고, 우도는 막배 때문에 1시간 45분쯤만 머문다.',
-      days: [[it('m_unjin'), it('o10a'), it('x_bangeo'), it('t_prince')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('k_981'), it('x_handam'), it('x_guksu'), it('o17')]] },
-    { id: 'b2', title: '사계 2박 · 첫날 오후 마라도', lodge: ['AND', 'AND'], concept: '1일차 오설록·귤밭을 거쳐 13:30 송악산 배로 마라도, 송악산 올레와 모슬포 방어회. 2일차 하효항 방어낚시와 우도, 3일차 탄산온천·카멜리아힐·9.81파크로 공항까지.', pros: '마라도·송악산이 숙소에서 10분. 첫날을 서쪽에서 여유 있게 쓴다. 마지막 날 아침 온천.', cons: '2일차는 사계에서 하효항(45분)·우도까지 동쪽으로 길게 다녀온다.',
-      days: [[it('x_osulloc'), it('t_prince'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_spa'), it('x_camellia'), it('k_981')]] },
-    { id: 'b3', title: '리조트 휴양 · 중문 2박', lodge: ['JUN', 'JUN'], concept: '중문 리조트에서 쉬면서 1일차 운진항 마라도·사계 해안·감귤카트, 2일차 하효항 방어낚시와 우도, 3일차 중문 올레·주상절리·파더스가든 귤밭.', pros: '숙소 퀄리티가 높고 하효항 30분, 마라도 항구 35분. 감귤카트는 12월에 19시까지.', cons: '2일차 동쪽 우도 왕복이 길다.',
-      days: [[it('m_unjin'), it('o10b'), it('k_gamgyul')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o8'), it('x_jusang'), it('t_fathers')]] },
-    { id: 'b4', title: '귤밭 감성 · 위미 2박', lodge: ['NAM', 'NAM'], concept: '귤밭 독채에 묵으며 동백·귤을 실컷. 2일차 하효항 낚시가 15분 거리, 3일차는 큰엉 해안 올레와 동백수목원 뒤 레포츠랜드 카트.', pros: '귤밭·동백 분위기 최고, 낚시 항구·우도 모두 가깝다.', cons: '1일차 마라도 뒤 위미까지 60분. 저녁 먹을 곳이 적은 동네.',
-      days: [[it('m_unjin'), it('o10a'), it('x_bangeo'), it('t_prince')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o5'), it('x_dongbaek'), it('k_leports')]] },
-    { id: 'b5', title: '서부 리조트 · 신화월드 2박', lodge: ['ADM', 'ADM'], concept: '신화월드 리조트를 거점으로 1일차 애월 올레·새별오름 뒤 13:30 마라도, 2일차 하효항 방어낚시와 우도, 3일차 카멜리아힐·파더스가든·9.81파크.', pros: '리조트 시설, 평화로로 공항 45분. 3일차가 공항 가는 길에 모여 있다.', cons: '2일차는 6시 40분쯤 출발해 동쪽 끝 우도까지 다녀오는 긴 하루.',
-      days: [[it('o16'), it('x_saebyeol'), it('m_songak'), it('o10a')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_camellia'), it('t_fathers'), it('k_981')]] },
-    { id: 'b6', title: '공항 거점 · 제주시 2박', lodge: ['AIR', 'AIR'], concept: '첫날·마지막 날을 공항 주변에서 채우고, 1일차 오후 마라도, 2일차 하효항 낚시와 우도 뒤 동문시장 야시장.', pros: '렌터카 인수·반납이 가장 편하고 밤 시장·식당이 많다.', cons: '남쪽 왕복이 길다.',
-      days: [[it('x_handam'), it('t_troy'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 }), it('x_dongmun')], [it('o21'), it('k_leports'), it('o17')]] },
-    { id: 'b7', title: '마지막 날은 걷기·동백으로 공항까지', lodge: ['SEO', 'SEO'], concept: '배 일정(마라도·낚시·우도)은 1·2일차에 끝내고, 3일차는 올레 7코스와 카멜리아힐, 애월 제이샘 귤밭을 거쳐 공항으로.', pros: '귀국일에 결항 걱정이 없다. 1일차 감귤카트(12월 19시까지)와 저녁 탄산온천.', cons: '2일차에 배를 두 번 탄다. 1일차는 온천 뒤 21시 넘어 숙소에 도착한다.',
-      days: [[it('o10b'), it('m_songak'), it('k_gamgyul'), it('x_spa')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o7'), it('x_camellia'), it('t_jsaem')]] },
-    { id: 'b8', title: '우도 빼고 여유롭게 · 중문 2박', lodge: ['JUN', 'JUN'], concept: '반나절이 드는 우도를 빼고 나머지 다섯 가지를 여유 있게. 2일차는 하효항 방어낚시 뒤 쇠소깍·정방폭포·올레 7코스.', pros: '이동이 가장 짧고 온천·방어회까지 들른다. 효율 점수가 가장 높다.', cons: '우도를 못 간다. 낚시를 오래 하고 싶으면 "다른 곳으로"에서 모슬포 종일 지깅(8시간)으로 바꿀 수 있다.',
-      days: [[it('m_unjin'), it('o10a'), it('x_bangeo'), it('x_spa')], [it('f_gm_am'), it('x_soesokkak'), it('x_jeongbang'), it('o7')], [it('t_fathers'), it('x_osulloc'), it('k_981')]] },
-    { id: 'b9', title: '숙소 나누기 · 사계 → 위미', lodge: ['AND', 'NAM'], concept: '1박은 사계(마라도·온천), 1박은 위미(하효항 낚시·우도 쪽). 한 곳 2박과 효율을 비교해 보는 안.', pros: '2일차 낚시 항구가 숙소에서 가깝고, 3일차는 성산일출봉·동쪽 귤밭·레포츠랜드 카트로 공항까지.', cons: '짐을 한 번 옮겨야 한다.',
-      days: [[it('x_saryeoni'), it('m_songak'), it('o10a'), it('x_spa')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_ilchul'), it('t_haepum'), it('k_leports')]] },
-    { id: 'b10', title: '이른 귀국편도 OK · 2일 몰아치기', lodge: ['SEO', 'SEO'], concept: '핵심을 1·2일차에 끝내고 3일차는 공항 근처 도두봉 올레와 귤밭만. 오후 2시 비행기여도 성립.', pros: '귀국편이 당겨져도 일정이 무너지지 않는다.', cons: '3일차가 짧아 효율 점수는 낮고 카트는 빠졌다. 귤밭이 마지막 날 공항 근처 농장으로 한정된다.',
-      days: [[it('m_unjin'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o17'), it('t_yewon')]] }
+    { id: 'b1', title: '시계 방향 한 바퀴 · 서귀포 2박', lodge: ['SEO', 'SEO'], concept: '1일차 공항에서 이레숲 귤밭을 거쳐 13:30 송악산 배로 마라도, 송악산 올레·모슬포 방어회. 2일차 하효항 오전 방어낚시 뒤 우도. 3일차 9.81파크·도두봉 올레로 공항.', pros: '서귀포 시내는 하효항 15분, 마라도·우도 항구 모두 50분 안팎. 올레시장이 가까워 저녁 해결이 쉽다.', cons: '2일차에 배를 두 번 타고, 우도는 막배 때문에 1시간 45분쯤만 머문다.',
+      days: [[it('t_irae'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('k_981'), it('o17')]] },
+    { id: 'b2', title: '사계 2박 · 첫날 마라도와 온천', lodge: ['AND', 'AND'], concept: '1일차 이레숲 귤밭 → 13:30 마라도 → 오설록·모슬포 방어회·산방산 탄산온천. 2일차 하효항 방어낚시와 우도. 3일차 카멜리아힐·감귤카트로 공항.', pros: '마라도·송악산이 숙소에서 10분. 첫날 저녁을 온천으로 마무리.', cons: '1일차가 21시 넘어 끝나고, 2일차는 사계에서 동쪽 끝 우도까지 다녀온다.',
+      days: [[it('t_irae'), it('m_songak'), it('x_osulloc'), it('x_bangeo'), it('x_spa')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_camellia'), it('k_gamgyul')]] },
+    { id: 'b3', title: '리조트 휴양 · 중문 2박', lodge: ['JUN', 'JUN'], concept: '1일차 이레숲 귤밭 → 13:30 마라도 → 주상절리·감귤카트(12월 19시까지). 2일차 하효항 방어낚시와 우도. 3일차 올레 9코스 박수기정과 도두봉으로 공항.', pros: '숙소 퀄리티가 높고 하효항 30분, 송악산 30분.', cons: '2일차 동쪽 우도 왕복이 길다.',
+      days: [[it('t_irae'), it('m_songak'), it('x_jusang'), it('k_gamgyul')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o9'), it('o17')]] },
+    { id: 'b4', title: '귤밭 감성 · 위미 2박', lodge: ['NAM', 'NAM'], concept: '1일차 이레숲 귤밭 → 마라도 → 감귤카트 → 모슬포 방어회 뒤 위미 귤밭 숙소로. 2일차 하효항(15분) 낚시와 우도. 3일차 큰엉 해안 올레와 동백수목원.', pros: '귤밭·동백 분위기 최고, 낚시 항구·우도 모두 가깝다.', cons: '1일차 저녁 모슬포에서 위미까지 60분. 3일차 카트·애월 쪽 일정은 없다.',
+      days: [[it('t_irae'), it('m_songak'), it('k_gamgyul'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o5'), it('x_dongbaek')]] },
+    { id: 'b5', title: '서부 리조트 · 신화월드 2박', lodge: ['ADM', 'ADM'], concept: '1일차 새별오름 → 13:30 마라도 → 송악산 올레 → 어린왕자감귤밭. 2일차 하효항 방어낚시와 우도. 3일차 카멜리아힐·9.81파크로 공항.', pros: '리조트 시설, 평화로로 공항 45분. 3일차가 공항 가는 길에 모여 있다.', cons: '2일차는 6시 40분쯤 출발해 동쪽 끝 우도까지 다녀오는 긴 하루.',
+      days: [[it('x_saebyeol'), it('m_songak'), it('o10a'), it('t_prince')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_camellia'), it('k_981')]] },
+    { id: 'b6', title: '공항 거점 · 제주시 2박', lodge: ['AIR', 'AIR'], concept: '1일차 이레숲 귤밭 → 마라도 → 송악산 올레·모슬포 방어회. 2일차 하효항 낚시·우도 뒤 동문시장 야시장. 3일차 애월 올레·9.81파크·도두봉.', pros: '렌터카 인수·반납이 가장 편하고 밤 시장·식당이 많다.', cons: '남쪽 왕복이 길어 2일차는 6시 30분쯤 출발.',
+      days: [[it('t_irae'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 }), it('x_dongmun')], [it('o16'), it('k_981'), it('o17')]] },
+    { id: 'b7', title: '마지막 날은 걷기·동백으로 공항까지', lodge: ['SEO', 'SEO'], concept: '배 일정(마라도·낚시·우도)은 1·2일차에 끝내고, 3일차는 올레 7코스와 카멜리아힐 동백만 보고 공항으로.', pros: '귀국일에 결항 걱정이 없다. 1일차 감귤카트와 저녁 탄산온천.', cons: '2일차에 배를 두 번 탄다. 1일차는 온천 뒤 21시 넘어 숙소 도착.',
+      days: [[it('t_irae'), it('m_songak'), it('k_gamgyul'), it('x_spa')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o7'), it('x_camellia')]] },
+    { id: 'b8', title: '우도 빼고 여유롭게 · 중문 2박', lodge: ['JUN', 'JUN'], concept: '반나절이 드는 우도를 빼고 다섯 가지를 여유 있게. 2일차는 하효항 방어낚시 뒤 쇠소깍·올레 6코스·정방폭포·감귤카트.', pros: '이동이 가장 짧고 효율 점수가 가장 높다. 온천·방어회까지.', cons: '우도를 못 간다. 낚시를 오래 하고 싶으면 "다른 곳으로"에서 모슬포 종일 지깅(8시간)으로 바꿀 수 있다.',
+      days: [[it('t_irae'), it('m_songak'), it('x_spa'), it('x_bangeo')], [it('f_gm_am'), it('x_soesokkak'), it('o6'), it('x_jeongbang'), it('k_gamgyul')], [it('o9'), it('x_osulloc')]] },
+    { id: 'b9', title: '숙소 나누기 · 사계 → 위미', lodge: ['AND', 'NAM'], concept: '1박은 사계(마라도·온천), 1박은 위미(하효항 낚시·우도 쪽). 한 곳 2박과 효율을 비교해 보는 안.', pros: '2일차 낚시 항구가 숙소에서 가깝고, 3일차는 성산일출봉과 레포츠랜드 카트로 공항까지.', cons: '짐을 한 번 옮겨야 한다.',
+      days: [[it('t_irae'), it('m_songak'), it('o10a'), it('x_spa')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('x_ilchul'), it('k_leports')]] },
+    { id: 'b10', title: '귀국편이 더 당겨져도 OK', lodge: ['SEO', 'SEO'], concept: '핵심을 1·2일차에 끝내고 3일차는 공항 근처 도두봉 올레와 화북 귤밭76번지만. 오후 3시 비행기여도 성립.', pros: '귀국편이 당겨져도 일정이 무너지지 않는다.', cons: '3일차가 짧아 효율 점수는 낮고 카트가 빠졌다. 귤밭76번지는 전화번호가 엇갈려 방문 전 확인.',
+      days: [[it('m_songak'), it('o10a'), it('x_bangeo')], [it('f_gm_am'), it('u_seongsan', { stay: 150 })], [it('o17'), it('t_76')]] }
   ];
 
   /* 기본 계획 = 베스트 1 */

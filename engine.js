@@ -188,8 +188,18 @@
       }
       if (tr > 0) { R.rows.push({ type: 'drive', t, min: tr, from: loc, to: p }); R.travel += tr; }
       const v = visit(p, it, t + tr, di);
+      /* 배를 기다리는 동안 점심시간이 끼면 항구 근처에서 간단히 먹은 것으로 친다 (40~60분) */
+      let portMeal = 0;
+      if (!lunchDone && p.slot && v.wait > 0 && !v.skipped) {
+        const s0 = Math.max(v.arrive, tm('11:00')), s1 = Math.min(v.start - (p.slot.checkin || 0), LUNCH_FORCE);
+        if (s1 - s0 >= 40) {
+          portMeal = Math.min(LUNCH_MIN, s1 - s0);
+          R.rows.push({ type: 'meal', kind: 'lunch', t: s0, end: s0 + portMeal, at: p, note: portMeal < LUNCH_MIN ? '항구 근처에서 간단히' : '항구 근처' });
+          R.meal += portMeal; lunchDone = true;
+        }
+      }
       R.rows.push({ type: 'act', t: v.start, end: v.end, arrive: v.arrive, it, p, k, v });
-      R.wait += v.wait; R.active += v.active; R.meal += v.meal; R.pen += v.pen;
+      R.wait += Math.max(0, v.wait - portMeal); R.active += v.active; R.meal += v.meal; R.pen += v.pen;
       v.issues.forEach(x => R.issues.push(Object.assign({ pid: p.id, name: p.name }, x)));
       if (v.island && !lunchDone) {
         const ov = Math.min(v.island[1], LUNCH_FORCE) - Math.max(v.island[0], tm('11:00'));
