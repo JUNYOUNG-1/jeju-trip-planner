@@ -349,15 +349,18 @@
 
   /* 조금씩 나눠 실행할 수 있는 최적화기. opt: {allowDay, allowPlace, allowLodge, iters, restarts} */
   function createOptimizer(st, opt) {
-    opt = Object.assign({ allowDay: true, allowPlace: true, allowLodge: !st.lodgeLk, iters: 4000, restarts: 4 }, opt || {});
+    opt = Object.assign({ allowDay: true, allowPlace: true, allowLodge: !st.lodgeLk, noSeaLast: true, iters: 4000, restarts: 4 }, opt || {});
+    /* 3일차(귀국일)에는 배 일정을 넣지 않는다 — 결항되면 대안이 없으므로. 사용자가 날짜를 고정한 것만 예외 */
+    const seaBad = x => opt.noSeaLast && PL[x.p] && PL[x.p].sea && !(x.lk && x.lk.d);
+    const objOf = s => evaluate(s).obj - 1000 * s.days[2].filter(seaBad).length;
     const R = rng(hashStr(JSON.stringify(st.days) + st.lodge.join() + JSON.stringify(st.cfg)));
     const cloneS = s => Object.assign({}, s, { lodge: s.lodge.slice(), days: s.days.map(d => d.slice()) });
     const used = s => { const u = {}; s.days.forEach(d => d.forEach(x => { u[x.p] = 1; })); return u; };
     const base = cloneS(st);
-    let best = cloneS(st), bestObj = evaluate(st).obj;
+    let best = cloneS(st), bestObj = objOf(st);
     const starts = [cloneS(st)];
     if (opt.allowLodge && st.same) {
-      const lc = J.LORDER.map(z => { const s2 = cloneS(st); s2.lodge = [z, z]; return { s2, o: evaluate(s2).obj }; }).sort((x, y) => y.o - x.o);
+      const lc = J.LORDER.map(z => { const s2 = cloneS(st); s2.lodge = [z, z]; return { s2, o: objOf(s2) }; }).sort((x, y) => y.o - x.o);
       if (lc[0]) starts.push(lc[0].s2);
       if (lc[1]) starts.push(lc[1].s2);
     }
@@ -371,22 +374,21 @@
       if (r >= opt.restarts) return false;
       cur = starts[r] ? cloneS(starts[r]) : cloneS(best);
       if (!starts[r]) for (let k = 0; k < 6; k++) cur = mutate(cur) || cur;
-      curObj = evaluate(cur).obj; T = 8; i = 0;
+      curObj = objOf(cur); T = 8; i = 0;
       return true;
     }
     function finish() {
       let polished = orderAll(best);
-      let pObj = evaluate(polished).obj;
+      let pObj = objOf(polished);
       if (opt.allowLodge) {
         const zs = st.same ? J.LORDER.map(z => [z, z]) : [];
         zs.forEach(l => {
           const s2 = orderAll(Object.assign(cloneS(polished), { lodge: l }));
-          const o2 = evaluate(s2).obj;
+          const o2 = objOf(s2);
           if (o2 > pObj + 1e-9) { polished = s2; pObj = o2; }
         });
       }
-      const eb = evaluate(base);
-      if (eb.obj > pObj) { polished = orderAll(base); }
+      if (objOf(base) > pObj) { polished = orderAll(base); }
       best = polished; done = true;
     }
     function run(maxIters) {
@@ -397,7 +399,7 @@
         if (i >= opt.iters) { if (!nextRestart()) { finish(); return true; } }
         const nx = mutate(cur);
         if (nx) {
-          const o = evaluate(nx).obj;
+          const o = objOf(nx);
           if (o >= curObj || R() < Math.exp((o - curObj) / T)) { cur = nx; curObj = o; }
           if (curObj > bestObj + 1e-9) { bestObj = curObj; best = cloneS(cur); }
         }
@@ -418,6 +420,7 @@
         if (x.lk && x.lk.d) return null;
         n.days[di].splice(k, 1);
         const dj = Math.floor(R() * 3);
+        if (dj === 2 && seaBad(x)) return null;
         n.days[dj].splice(Math.floor(R() * (n.days[dj].length + 1)), 0, x);
         return n;
       } else if (pick < 0.55) {
@@ -451,6 +454,7 @@
         if (a[0] === b[0]) return null;
         const xa = n.days[a[0]][a[1]], xb = n.days[b[0]][b[1]];
         if ((xa.lk && xa.lk.d) || (xb.lk && xb.lk.d)) return null;
+        if ((b[0] === 2 && seaBad(xa)) || (a[0] === 2 && seaBad(xb))) return null;
         n.days[a[0]][a[1]] = xb; n.days[b[0]][b[1]] = xa;
         return n;
       }
@@ -518,7 +522,7 @@
     const perDay = [0, 1, 2].map(dj => {
       const b = bestInsert(st, base, dj, item);
       const r = { dj, score: b.e.score, d: b.e.score - base.score, dTravel: b.e.tot.travel - base.tot.travel, dActive: b.e.tot.active - base.tot.active, s: b.s, nErr: b.e.nErr };
-      if (!best || b.e.obj > best.obj) best = Object.assign({ obj: b.e.obj }, r);
+      if ((dj < 2 || !PL[pid].sea) && (!best || b.e.obj > best.obj)) best = Object.assign({ obj: b.e.obj }, r);
       return r;
     });
     return { perDay, best };
@@ -543,7 +547,7 @@
     st.days.forEach((list, di) => list.forEach((x, k) => {
       const p = PL[x.p]; if (!p) return;
       if (!(x.lk && x.lk.d)) {
-        dayMoveDeltas(st, base, di, k).forEach(m => { if (!m.cur && m.d > 0.4) out.push({ kind: 'day', d: m.d, dTravel: m.dTravel, s: m.s, msg: `${eul(p.name)} ${m.dj + 1}일차로 옮기기` }); });
+        dayMoveDeltas(st, base, di, k).forEach(m => { if (!m.cur && m.d > 0.4 && !(m.dj === 2 && p.sea)) out.push({ kind: 'day', d: m.d, dTravel: m.dTravel, s: m.s, msg: `${eul(p.name)} ${m.dj + 1}일차로 옮기기` }); });
       }
       if (!(x.lk && x.lk.p) && (BYGRP[p.grp] || []).length > 1) {
         const c = candidateDeltas(st, base, di, k).filter(c => !c.used && !c.cur && c.d > 0.4).sort((a, b) => b.d - a.d)[0];

@@ -255,8 +255,8 @@
   const PLANS = [
     { id: 'b1', title: '시계 방향 한 바퀴', lodge: ['SEO', 'SEO'], concept: '첫날 동쪽(우도·휴애리) → 둘째 날 남서쪽(방어낚시·마라도·송악산) → 마지막 날 공항 쪽(카트·애월). 같은 길을 되돌아가지 않는다.', pros: '원하는 6가지를 모두 넣고도 이동이 덜 겹친다. 배 일정이 1·2일차라 결항되면 3일차로 미룰 여유가 있다.', cons: '2일차 새벽 5시대 출발.',
       days: [[it('u_seongsan', { stay: 150 }), it('t_hueree')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('k_981'), it('x_handam'), it('x_guksu'), it('o17')]] },
-    { id: 'b2', title: '모슬포 집중 · 사계 2박', lodge: ['AND', 'AND'], concept: '숙소를 낚시·마라도 항구 10분 거리에 두고, 우도는 마지막 날 공항 가는 길에.', pros: '새벽 낚시 출발이 6시 전후로 가장 편하다. 산방산 뷰 숙소, 탄산온천까지.', cons: '3일차 우도는 결항되면 대안이 없고 성산까지 80분.',
-      days: [[it('k_981'), it('x_osulloc'), it('t_troy'), it('x_camellia')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_spa'), it('x_bangeo')], [it('u_seongsan', { stay: 150 })]] },
+    { id: 'b2', title: '모슬포 집중 · 사계 2박', lodge: ['AND', 'AND'], concept: '숙소를 낚시·마라도 항구 10분 거리에 두고, 우도는 첫날 공항에서 바로. 마지막 날은 오설록·귤밭·9.81파크로 공항까지.', pros: '새벽 낚시 출발이 6시 전후로 가장 편하다. 첫날 저녁 탄산온천, 2일차 저녁 방어회.', cons: '1일차 우도에서 사계까지 80분을 달려야 한다. 2일차에 배를 두 번 탄다.',
+      days: [[it('u_seongsan', { stay: 150 }), it('x_camellia'), it('x_spa')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('x_osulloc'), it('t_troy'), it('k_981')]] },
     { id: 'b3', title: '리조트 휴양 · 중문 2박', lodge: ['JUN', 'JUN'], concept: '중문 리조트에서 쉬면서 1일차 동쪽 · 2일차 서쪽 · 3일차 중문 근처 카트와 귤밭.', pros: '숙소 퀄리티가 높고 모슬포 28분.', cons: '1일차 위미에서 중문까지 저녁 이동. 귤밭은 마지막 날.',
       days: [[it('u_seongsan', { stay: 150 }), it('x_seopji'), it('x_wimi')], [it('f_moseul_am'), it('m_songak'), it('o10b'), it('x_bangeo')], [it('t_doldam'), it('x_jusang'), it('k_gamgyul')]] },
     { id: 'b4', title: '귤밭 감성 · 위미 2박', lodge: ['NAM', 'NAM'], concept: '귤밭 독채에 묵으며 동백·귤을 실컷. 카트는 첫날 공항 근처 레포츠랜드.', pros: '귤밭·동백 분위기 최고, 우도 40분.', cons: '모슬포 새벽 낚시 출발이 5시 전후.',
@@ -265,12 +265,12 @@
       days: [[it('u_seongsan', { stay: 150 }), it('t_choinamdan')], [it('m_songak', { slot: '09:20' }), it('f_moseul_pm'), it('x_bangeo')], [it('k_981'), it('x_saebyeol'), it('o17')]] },
     { id: 'b6', title: '공항 거점 · 제주시 2박', lodge: ['AIR', 'AIR'], concept: '첫날·마지막 날을 공항 주변에서 채우고, 2일차에만 남서쪽 원정.', pros: '렌터카 인수·반납이 가장 편하고 밤 시장·식당이 많다.', cons: '2일차 왕복 이동이 길다(편도 50분+).',
       days: [[it('k_leports'), it('u_seongsan', { stay: 150 }), it('o21'), it('x_dongmun')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('o17'), it('x_handam'), it('t_migang')]] },
-    { id: 'b7', title: '바다 일정 하루 하나씩', lodge: ['SEO', 'SEO'], concept: '마라도·낚시·우도를 날마다 하나씩 나눠 결항 위험을 분산.', pros: '하루 바람이 세도 나머지 둘은 건진다. 첫날 점심이 마라도 짜장면.', cons: '3일차 우도는 비행기 시간에 쫓긴다.',
-      days: [[it('m_songak'), it('t_eunha'), it('o10b'), it('x_spa')], [it('f_moseul_am'), it('x_camellia'), it('o7'), it('k_wind')], [it('u_seongsan', { stay: 150 })]] },
+    { id: 'b7', title: '마지막 날은 걷기·동백으로 느긋하게', lodge: ['SEO', 'SEO'], concept: '배 일정(우도·낚시·마라도)을 1·2일차에 끝내고, 3일차는 올레 7코스·귤밭·카멜리아힐을 천천히 돌며 공항으로.', pros: '귀국일에 결항 걱정이 없고, 마지막 날이 걷기·사진 위주라 여유롭다. 첫날 저녁 탄산온천.', cons: '2일차에 새벽 낚시와 마라도가 몰려 배를 두 번 탄다. 1일차 이동이 길다.',
+      days: [[it('u_seongsan', { stay: 150 }), it('k_wind'), it('x_spa')], [it('f_moseul_am'), it('o10b'), it('m_songak')], [it('o7'), it('t_eunha'), it('x_camellia')]] },
     { id: 'b8', title: '우도 빼고 여유롭게', lodge: ['JUN', 'JUN'], concept: '왕복+섬 일주로 반나절이 드는 우도를 빼고 나머지 다섯 가지를 여유 있게.', pros: '하루 이동이 짧고 온천까지 들른다.', cons: '우도를 못 간다.',
       days: [[it('k_981'), it('x_osulloc'), it('t_fathers'), it('x_spa')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('o7'), it('x_jeongbang'), it('x_soesokkak')]] },
-    { id: 'b9', title: '숙소 나누기 · 사계 → 성산', lodge: ['AND', 'SSN'], concept: '1박은 사계(낚시용), 1박은 성산(우도용). 한 곳 2박과 효율을 비교해 보는 안.', pros: '새벽 낚시도 가깝고, 3일차 아침 일출봉과 우도도 가깝다.', cons: '짐을 한 번 옮겨야 하고 3일차 우도는 결항 대안이 없다.',
-      days: [[it('k_981'), it('t_troy'), it('x_camellia')], [it('f_moseul_am'), it('m_songak'), it('o10a')], [it('x_ilchul'), it('u_seongsan', { stay: 150 })]] },
+    { id: 'b9', title: '숙소 나누기 · 위미 → 사계', lodge: ['NAM', 'AND'], concept: '1박은 동쪽 위미 귤밭 숙소(우도용), 1박은 서쪽 사계 바닷가(낚시·마라도용). 한 곳 2박과 효율을 비교해 보는 안.', pros: '1일차 우도·일출봉 뒤 숙소가 가깝고, 2일차 밤엔 사계에서 바로 쉰다. 3일차 오프로드 카트.', cons: '짐을 한 번 옮겨야 하고 2일차 새벽 낚시가 위미에서 5시대 출발이다.',
+      days: [[it('x_ilchul'), it('u_seongsan', { stay: 150 })], [it('f_sagye'), it('o10b'), it('m_songak')], [it('x_camellia'), it('k_offroad'), it('t_tamna')]] },
     { id: 'b10', title: '이른 귀국편도 OK · 2일 몰아치기', lodge: ['SEO', 'SEO'], concept: '핵심을 1·2일차에 끝내고 3일차는 공항 근처 귤밭과 올레만. 오후 2시 비행기여도 성립.', pros: '귀국편이 당겨져도 일정이 무너지지 않는다.', cons: '귤밭이 마지막 날 공항 근처 농장으로 한정된다.',
       days: [[it('k_leports'), it('u_seongsan', { stay: 150 }), it('x_seopji')], [it('f_moseul_am'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('t_yewon'), it('o17')]] }
   ];

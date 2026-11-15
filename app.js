@@ -279,7 +279,7 @@
       <div class="panel-head"><h3>점수는 이렇게 계산돼요</h3>${coverHtml(S)}</div>
       <p class="formula">시간효율 = 체험 ${dstr(t.active)} ÷ (체험 ${dstr(t.active)} + 운전·주차 ${dstr(t.travel)} + 대기 ${dstr(t.wait)}) = <b>${(EV.E * 100).toFixed(1)}%</b>
         → 환산 <b>${fmt1(EV.effScore)}점</b> (30%=0점, 75%=100점) − 감점 <b>${fmt1(EV.dayPen + EV.pen)}점</b> = <b>${fmt1(EV.score)}점</b></p>
-      <p class="note" style="margin-top:6px">감점 기준: 휴무일 방문 15 · 입장 마감 뒤 도착 20 · 배를 못 탐 30 · 비행기 반납 마감 초과 40+ · 일몰 뒤 야외 최대 10 · 늦은 점심 3 · 새벽 5시 전 출발 6 · 밤 9시 반 넘어 숙소 도착 최대 15 · 하루 14시간 초과 · 3일차 배 일정(결항 대비 불가) 4 · 하루에 배 일정 2개 2 · 숙소 이동 4. 식사·자유시간은 효율 계산에서 빠져요.</p>
+      <p class="note" style="margin-top:6px">감점 기준: 휴무일 방문 15 · 입장 마감 뒤 도착 20 · 배를 못 탐 30 · 비행기 반납 마감 초과 40+ · 일몰 뒤 야외 최대 10 · 늦은 점심 3 · 새벽 5시 전 출발 6 · 밤 9시 반 넘어 숙소 도착 최대 15 · 하루 14시간 초과 · 3일차 배 일정(결항 대비 불가) 4, 자동으로 짤 때는 아예 넣지 않음 ·하루에 배 일정 2개 2 · 숙소 이동 4. 식사·자유시간은 효율 계산에서 빠져요.</p>
       ${planIssues.length ? `<div class="issues" style="margin-top:8px">${planIssues.map(issueChip).join('')}</div>` : ''}
     </section>`;
   }
@@ -435,6 +435,7 @@
   const ISLE_OF = { m_songak: 'marado', m_unjin: 'marado', u_seongsan: 'udo', i_gapado: 'gapado', i_biyang: 'biyang' };
   const poly = pts => pts.map(p => proj(p[0], p[1]).join(',')).join(' ');
   function viewMap() {
+    const useL = !!window.L;
     const dots = ui.mapAll ? J.PLACES : [];
     const used = {}; S.days.forEach((d, di) => d.forEach(x => { used[x.p] = di + 1; }));
     const zoneLabels = J.ZORDER.map(z => { const [x, y] = proj(J.ZONES[z].lat, J.ZONES[z].lng); return `<text class="map-zlabel" x="${x}" y="${y - 14}" text-anchor="middle">${esc(J.ZONES[z].short)}</text>`; }).join('');
@@ -460,6 +461,14 @@
     const marks = `<rect x="${ax - 9}" y="${ay - 9}" width="18" height="18" rx="4" style="fill:var(--ink)"/><path d="M${ax - 6} ${ay + 1} L${ax + 6} ${ay - 3} L${ax + 6} ${ay - 1} L${ax} ${ay + 2} L${ax + 2} ${ay + 6} L${ax} ${ay + 6} L${ax - 3} ${ay + 3} Z" style="fill:var(--bg)"/><text class="map-mark-label" x="${ax + 14}" y="${ay - 8}">공항</text>` +
       [...new Set(S.lodge)].map(z => { const L = E.LP[z]; const [x, y] = proj(L.lat, L.lng); return `<path d="M${x - 10} ${y + 8} V${y - 2} L${x} ${y - 11} L${x + 10} ${y - 2} V${y + 8} Z" style="fill:var(--ink)"/><rect x="${x - 3}" y="${y + 1}" width="6" height="7" style="fill:var(--bg)"/><text class="map-mark-label" x="${x + 14}" y="${y + 22}">숙소</text>`; }).join('');
     const sel = ui.mapSel && PL[ui.mapSel] ? placeCard(PL[ui.mapSel], { compact: true }) : '<p class="note">지도의 점을 누르면 그 장소 정보가 여기 나와요. 굵은 번호는 일정 순서예요(색 = 날짜).</p>';
+    const svgPart = () => `
+        <p class="map-hint">지도를 옆으로 밀어서 보세요</p>
+        <div class="map-wrap"><svg viewBox="0 0 1000 690" role="img" aria-label="제주도 지도와 일정 경로">
+          <polygon class="map-land" points="${poly(COAST)}"/><polygon class="map-land" points="${poly(UDO)}"/>${isl}${hall}${zoneLabels}${isLabels}${dotSvg}${routes}${marks}
+        </svg></div>
+        <div class="legend" style="margin-top:8px">${Object.keys(J.CATS).map(c => `<span style="--c:var(${CATVAR[c]})"><i></i>${esc(J.CATS[c].short)}</span>`).join('')}<span>선은 직선 표시(실제 도로와 다름) · 점선은 배</span></div>
+        <div style="margin-top:12px">${sel}</div>
+`;
     const fromL = E.LP[S.lodge[0]];
     const zoneCards = J.ZORDER.map(z => {
       const Z = J.ZONES[z]; const zp = { id: 'Z_' + z, zone: z, lat: Z.lat, lng: Z.lng };
@@ -473,18 +482,102 @@
     return `<div class="view">
       <section class="panel">
         <div class="panel-head"><h2>지도로 보는 내 동선</h2>
-          <div class="chips">${[0, 1, 2, 3].map(d => `<button class="chip" type="button" data-act="map-day" data-d="${d}" aria-pressed="${ui.mapDay === d}">${d ? d + '일차' : '전체'}</button>`).join('')}
+          <div class="chips">${[0, 1, 2, 3].map(d => `<button class="chip" type="button" data-act="map-day" data-d="${d}" aria-pressed="${ui.mapDay === d}">${d ? `<i class="dd" style="--c:var(${DAYVAR[d - 1]})"></i>${d}일차` : '전체'}</button>`).join('')}
           <button class="chip" type="button" data-act="map-all" aria-pressed="${ui.mapAll}">모든 장소 점</button></div></div>
-        <p class="map-hint">지도를 옆으로 밀어서 보세요</p>
-        <div class="map-wrap"><svg viewBox="0 0 1000 690" role="img" aria-label="제주도 지도와 일정 경로">
-          <polygon class="map-land" points="${poly(COAST)}"/><polygon class="map-land" points="${poly(UDO)}"/>${isl}${hall}${zoneLabels}${isLabels}${dotSvg}${routes}${marks}
-        </svg></div>
-        <div class="legend" style="margin-top:8px">${Object.keys(J.CATS).map(c => `<span style="--c:var(${CATVAR[c]})"><i></i>${esc(J.CATS[c].short)}</span>`).join('')}<span>선은 직선 표시(실제 도로와 다름) · 점선은 배</span></div>
-        <div style="margin-top:12px">${sel}</div>
+        ${useL ? `<div id="jmap" class="lmap" role="region" aria-label="제주 지도와 일정 경로"></div>
+        <div class="legend" style="margin-top:8px">${Object.keys(J.CATS).map(c => `<span style="--c:var(${CATVAR[c]})"><i></i>${esc(J.CATS[c].short)}</span>`).join('')}<span>굵은 색 선 = 날짜별 운전 경로(실제 도로) · 점선 = 배 · 번호 = 방문 순서</span></div>
+        <p class="note" style="margin-top:4px">점이나 번호를 누르면 정보와 카카오맵·네이버 지도 바로가기가 떠요. 확대·축소는 + − 버튼이나 두 손가락으로.</p>` : svgPart()}
       </section>
       <section class="panel"><div class="panel-head"><h2>동네 가이드</h2><span class="note">시간은 승용차 평상시 기준</span></div><div class="zones">${zoneCards}</div>
         <details style="margin-top:12px"><summary class="btn small">동네 간 운전시간표 (분)</summary><div class="scroll-x" style="margin-top:8px">${mt}</div></details></section>
     </div>`;
+  }
+
+
+  /* 실제 지도 (Leaflet + OpenStreetMap 타일, 도로 경로는 OSRM). 못 불러오면 그림 지도로 대신 */
+  let LMAP = null;
+  const ROUTES = LS.get('jeju.v1.routes', {});
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#888';
+  const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; };
+  const PLANE = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0v5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
+  const HOUSE = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>';
+  function mapLinks(p) {
+    const n = shortName(p);
+    return `<a class="btn small" href="https://map.kakao.com/link/map/${encodeURIComponent(n)},${p.lat},${p.lng}" target="_blank" rel="noopener">카카오맵</a><a class="btn small" href="https://map.naver.com/p/search/${encodeURIComponent(n)}" target="_blank" rel="noopener">네이버 지도</a>`;
+  }
+  function popHtml(p, extra) {
+    const cl = closedText(p);
+    const hours = p.open ? `${p.open}~${p.close}${p.last ? ` (입장 ${p.last}까지)` : ''}` : '';
+    return `<div class="mp"><div class="mp-h">${badge(p)}<b>${esc(p.name)}</b></div>
+      <div class="small muted">${esc(J.ZONES[p.zone] ? J.ZONES[p.zone].name : '')}${hours ? ' · ' + esc(hours) : ''}${cl ? ' · ' + esc(cl) : ''}</div>
+      ${p.price ? `<div class="small">${esc(p.price)}</div>` : ''}${extra || ''}
+      <div class="mp-a"><button class="btn small" type="button" data-act="info" data-id="${p.id}">자세히</button>${mapLinks(p)}</div></div>`;
+  }
+  /* 날짜별 실제 도로 경로 — 한 번 받은 건 브라우저에 저장 */
+  function roadRoute(pts) {
+    const key = pts.map(q => q[0].toFixed(4) + ',' + q[1].toFixed(4)).join(';');
+    if (ROUTES[key]) return Promise.resolve(ROUTES[key]);
+    const url = 'https://router.project-osrm.org/route/v1/driving/' + pts.map(q => q[1].toFixed(5) + ',' + q[0].toFixed(5)).join(';') + '?overview=simplified&geometries=geojson';
+    return fetch(url).then(r => (r.ok ? r.json() : null)).then(j => {
+      const c = j && j.routes && j.routes[0] && j.routes[0].geometry && j.routes[0].geometry.coordinates;
+      if (!c || c.length < 2) return null;
+      const g = c.map(x => [Math.round(x[1] * 1e5) / 1e5, Math.round(x[0] * 1e5) / 1e5]);
+      ROUTES[key] = g;
+      const ks = Object.keys(ROUTES); if (ks.length > 24) delete ROUTES[ks[0]];
+      LS.set('jeju.v1.routes', ROUTES);
+      return g;
+    }).catch(() => null);
+  }
+  function mountMap() {
+    const el = $('#jmap'); const Lf = window.L;
+    if (!el || !Lf) return;
+    const map = Lf.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    LMAP = map;
+    Lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · 경로 <a href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a>'
+    }).addTo(map);
+    el.classList.toggle('dark', isDark());
+    const dayCol = DAYVAR.map(cssVar);
+    const used = {}; S.days.forEach((d, di) => d.forEach(x => { used[x.p] = di + 1; }));
+    J.ZORDER.forEach(z => { const Z = J.ZONES[z]; Lf.marker([Z.lat, Z.lng], { icon: Lf.divIcon({ className: 'zl', html: `<span>${esc(Z.short)}</span>`, iconSize: [0, 0] }), interactive: false, keyboard: false }).addTo(map); });
+    if (ui.mapAll) J.PLACES.forEach(p => {
+      if (used[p.id]) return;
+      Lf.circleMarker([p.lat, p.lng], { radius: 6, weight: 1.5, color: '#fff', fillColor: cssVar(CATVAR[p.cat]), fillOpacity: ui.mapDay ? 0.55 : 0.9, opacity: ui.mapDay ? 0.6 : 1 })
+        .bindPopup(popHtml(p), { maxWidth: 290 }).addTo(map);
+    });
+    const bounds = [];
+    EV.days.forEach((d, di) => {
+      if (ui.mapDay && ui.mapDay !== di + 1) return;
+      const acts = d.rows.filter(r => r.type === 'act');
+      const pts = [d.from].concat(acts.map(r => r.p), [d.to]).map(q => [q.lat, q.lng]);
+      pts.forEach(q => bounds.push(q));
+      const halo = Lf.polyline(pts, { color: '#fff', weight: 8, opacity: 0, interactive: false }).addTo(map);
+      const line = Lf.polyline(pts, { color: dayCol[di], weight: 4, opacity: 0.6, dashArray: '2 9', lineCap: 'round', interactive: false }).addTo(map);
+      roadRoute(pts).then(g => {
+        if (!g || LMAP !== map) return;
+        halo.setLatLngs(g); halo.setStyle({ opacity: isDark() ? 0.25 : 0.7 });
+        line.setLatLngs(g); line.setStyle({ opacity: 0.9, dashArray: null }); line.bringToFront();
+      });
+      acts.forEach((r, n) => {
+        const isle = ISLE_OF[r.p.id];
+        if (isle) { Lf.polyline([[r.p.lat, r.p.lng], ISLES[isle]], { color: dayCol[di], weight: 3, dashArray: '6 7', opacity: 0.95, interactive: false }).addTo(map); bounds.push(ISLES[isle]); }
+        const extra = `<div class="small"><b style="color:${dayCol[di]}">${di + 1}일차 ${n + 1}번째</b> · ${hm(r.v.start)}~${hm(r.v.end)}</div>`;
+        Lf.marker([r.p.lat, r.p.lng], { icon: Lf.divIcon({ className: 'mk', html: `<span style="background:${dayCol[di]}">${n + 1}</span>`, iconSize: [26, 26], iconAnchor: [13 - di * 6, 13 + di * 6] }), zIndexOffset: 1000 + di * 10, title: r.p.name })
+          .bindPopup(popHtml(r.p, extra), { maxWidth: 290 }).addTo(map);
+      });
+    });
+    const ico = (html, t) => Lf.divIcon({ className: 'mk-ico', html: `<span title="${t}">${html}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+    Lf.marker([E.AIRPORT.lat, E.AIRPORT.lng], { icon: ico(PLANE, '제주공항'), zIndexOffset: 900 }).bindPopup('<b>제주국제공항</b><div class="small muted">렌터카 인수·반납</div>').addTo(map);
+    [...new Set(S.lodge)].forEach(z => {
+      const P2 = E.LP[z];
+      Lf.marker([P2.lat, P2.lng], { icon: ico(HOUSE, '숙소'), zIndexOffset: 900 })
+        .bindPopup(`<div class="mp"><b>숙소 · ${esc(lodgeName(z))}</b><div class="small muted">${esc(J.LODGE[z].pros)}</div><div class="small">예: ${J.LODGE[z].ex.map(esc).join(' · ')}</div></div>`, { maxWidth: 290 }).addTo(map);
+      if (ui.mapDay) bounds.push([P2.lat, P2.lng]);
+    });
+    map.fitBounds(ui.mapDay && bounds.length ? bounds : [[33.13, 126.16], [33.56, 126.97]], { padding: [26, 26] });
+    const zl = () => el.classList.toggle('zlo', map.getZoom() < 10);
+    map.on('zoomend', zl); zl();
   }
 
   /* ───── 장소 카드 ───── */
@@ -924,7 +1017,9 @@
     renderScore(); renderTabs();
     const v = { plan: viewPlan, map: viewMap, pick: viewPick, best: viewBest, stay: viewStay, info: viewInfo, save: viewSave }[tab] || viewPlan;
     const y = window.scrollY;
+    if (LMAP) { try { LMAP.remove(); } catch (e) { /* 이미 지워짐 */ } LMAP = null; }
     $('#app').innerHTML = v();
+    if (tab === 'map') mountMap();
     window.scrollTo(0, y);
     const det = $('#cfgDetails'); if (det) det.addEventListener('toggle', () => { ui.cfgOpen = det.open; });
   }
@@ -1041,6 +1136,7 @@
     const isDark = cur === 'dark' || (cur === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const next = isDark ? 'light' : 'dark';
     LS.set(KEY.theme, next); applyTheme(next); toast(next === 'dark' ? '어두운 화면' : '밝은 화면');
+    if (tab === 'map') render();
   });
 
   /* 공유 링크로 들어온 경우 */

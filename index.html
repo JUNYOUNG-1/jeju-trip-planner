@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
 /* 레이아웃: 상단 고정 점수판 + 탭, 아래는 탭별 화면. 일정 화면은 넓으면 3열, 좁으면 1열 */
 :root {
@@ -234,6 +235,29 @@ table.tbl { border-collapse: collapse; width: 100%; font-size: .86rem; }
 .map-mark-label { font-size: 13px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--land); stroke-width: 4px; }
 .map-hall { fill: none; stroke: var(--land-line); }
 .map-hint { display: none; font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+
+/* ── 실제 지도 (Leaflet) ── */
+.lmap { position: relative; z-index: 0; height: min(64vh, 540px); border-radius: var(--r); border: 1px solid var(--line); background: var(--sea-map); }
+.leaflet-container { font-family: var(--f-body); }
+.leaflet-container img, .leaflet-container svg { max-width: none !important; }
+.lmap .zl span { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface); background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); pointer-events: none; }
+.lmap.zlo .zl { display: none; }
+.lmap.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.7); }
+.mk span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font: 600 13px/1 var(--f-mono); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.mk-ico span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: var(--bg); border: 2px solid var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.leaflet-popup-content { margin: 11px 13px; font-size: .86rem; line-height: 1.45; }
+.leaflet-container a.btn { color: var(--ink); }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+.mp { display: grid; gap: 4px; }
+.mp-h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.mp-a { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.leaflet-control-attribution { background: var(--surface) !important; background: color-mix(in srgb, var(--surface) 82%, transparent) !important; color: var(--muted); }
+.leaflet-control-attribution a { color: var(--muted); }
+.chip .dd { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 5px; vertical-align: 1px; }
+.chip[aria-pressed="true"] .dd { box-shadow: 0 0 0 1.5px var(--bg); }
+@media (max-width: 640px) { .lmap { height: 360px; } }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .78rem; color: var(--muted); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 4px; vertical-align: -1px; }
 .zones { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
@@ -354,10 +378,11 @@ select.ez-lodge { width: auto; max-width: 100%; }
 <main class="wrap" id="app"></main>
 <div id="modalRoot"></div>
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="config.js?v=2"></script>
-<script src="data.js?v=2"></script>
-<script src="verify.js?v=2"></script>
-<script src="engine.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="config.js?v=4"></script>
+<script src="data.js?v=4"></script>
+<script src="verify.js?v=4"></script>
+<script src="engine.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
