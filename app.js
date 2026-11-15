@@ -20,7 +20,7 @@
     { k: 'fish', label: '방어낚시', test: p => p.grp === 'fish' },
     { k: 'olle', label: '올레길', test: p => p.cat === 'olle' }
   ];
-  const CATVAR = { tang: '--accent', kart: '--kart', marado: '--sea', udo: '--sea', island: '--sea', fish: '--navy', olle: '--olle', flower: '--cam', rest: '--plum', view: '--view', food: '--food' };
+  const CATVAR = { tang: '--tang', kart: '--kart', marado: '--sea', udo: '--sea', island: '--sea', fish: '--navy', olle: '--olle', flower: '--cam', rest: '--plum', view: '--view', food: '--food' };
   const AREAS = [
     { k: 'all', label: '전체', z: null },
     { k: 'n', label: '제주시·애월', z: ['AIR', 'AEW', 'HAL'] },
@@ -129,11 +129,9 @@
     const g = E.grade(EV.score);
     const d = lastDelta ? deltaHtml(lastDelta.d) : '';
     $('#scorebox').innerHTML = `
-      <div class="score-num" title="효율 점수">${fmt1(EV.score)}<small>/100</small></div>
       <div class="score-meta">
-        <span><span class="pill ${g.tone}">${g.label}</span> ${d}</span>
-        <span class="hide-s">시간효율 <b>${(EV.E * 100).toFixed(1)}%</b> · 운전 <b>${dstr(EV.tot.travel)}</b></span>
-        <span>문제 <b>${EV.nErr}</b> · 주의 <b>${EV.nWarn}</b></span>
+        <span class="score-num" title="효율 점수">${fmt1(EV.score)}<small>점</small></span>
+        <span class="score-sub">${esc(g.label)}${EV.nErr ? ` · <b class="bad">문제 ${EV.nErr}</b>` : ''} ${d}</span>
       </div>`;
   }
   function renderTabs() {
@@ -302,7 +300,7 @@
   ];
   const WSEED = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_gm_am', olle: 'o10a' };
   const WDESC = { tang: '귤 따기 체험', kart: '카트 타기', marado: '배 타고 가서 짜장면', udo: '배 15분, 섬 한 바퀴', fish: '배 지깅 3~4시간', olle: '바닷길 걷기 2~3시간' };
-  const WCOLOR = { tang: '--accent', kart: '--kart', marado: '--sea', udo: '--sea', fish: '--navy', olle: '--olle' };
+  const WCOLOR = { tang: '--tang', kart: '--kart', marado: '--sea', udo: '--sea', fish: '--navy', olle: '--olle' };
   let ezRun = null;
   const ezBase = () => clone(ezRun ? ezRun.base : S);
   function findWish(st, test) {
@@ -703,10 +701,10 @@
     const { pl, st, e } = r;
     const g = E.grade(e.score);
     const isCur = S.from === pl.id;
-    return `<article class="plan-card" ${isCur ? 'style="border-color:var(--accent)"' : ''}>
+    return `<article class="plan-card ${isCur ? 'cur' : ''}">
       <div class="row" style="justify-content:space-between"><span class="rank">${ui.bestSort === 'score' ? `점수 ${n + 1}위` : `추천 ${r.i + 1}`}</span>${isCur ? '<span class="pill acc">지금 불러온 안</span>' : ''}</div>
       <h3>${esc(pl.title)}</h3>
-      <div class="score-line"><span class="big">${fmt1(e.score)}</span><span class="pill ${g.tone}">${g.label}</span><span class="small muted">시간효율 ${(e.E * 100).toFixed(1)}% · 운전 ${dstr(e.tot.travel)} · 대기 ${dstr(e.tot.wait)} · 문제 ${e.nErr} · 주의 ${e.nWarn}</span></div>
+      <div class="score-line"><span class="big">${fmt1(e.score)}</span><span class="pill ${g.tone}">${g.label}</span><span class="small muted">운전 ${dstr(e.tot.travel)} · 대기 ${dstr(e.tot.wait)}${e.nErr ? ` · <b style="color:var(--err)">문제 ${e.nErr}</b>` : ""}</span></div>
       ${coverHtml(st)}
       <div class="small"><b>숙소</b> ${esc(lodgeText(st))}</div>
       <p class="small">${esc(pl.concept)}</p>
@@ -1019,7 +1017,7 @@
     const day = (st, ev) => ev.days.map((d, di) => `<div class="dayline" style="--dc:var(${DAYVAR[di]})"><b>${di + 1}일차</b><span>${d.rows.filter(r => r.type === 'act').map(r => esc(shortName(r.p))).join(' → ') || '—'}</span></div>`).join('');
     const out = `<div class="two" style="margin-top:8px">
       <div class="panel"><div class="eyebrow">지금</div><div class="score-line" style="display:flex;gap:8px;align-items:baseline"><span class="big mono" style="font-size:1.4rem">${fmt1(eb.score)}</span><span class="small muted">운전 ${dstr(eb.tot.travel)} · ${esc(lodgeText(before))}</span></div>${day(before, eb)}</div>
-      <div class="panel" style="border-color:var(--accent)"><div class="eyebrow">최적안</div><div class="score-line" style="display:flex;gap:8px;align-items:baseline"><span class="big mono" style="font-size:1.4rem">${fmt1(ea.score)}</span>${deltaHtml(ea.score - eb.score)} ${minDeltaHtml(ea.tot.travel - eb.tot.travel)}</div><div class="small muted">${esc(lodgeText(after))}</div>${day(after, ea)}${coverHtml(after)}</div></div>
+      <div class="panel" style="box-shadow:inset 0 0 0 2px var(--accent)"><div class="eyebrow">최적안</div><div class="score-line" style="display:flex;gap:8px;align-items:baseline"><span class="big mono" style="font-size:1.4rem">${fmt1(ea.score)}</span>${deltaHtml(ea.score - eb.score)} ${minDeltaHtml(ea.tot.travel - eb.tot.travel)}</div><div class="small muted">${esc(lodgeText(after))}</div>${day(after, ea)}${coverHtml(after)}</div></div>
       ${ea.score <= eb.score + 0.05 ? '<p class="note">더 나은 조합을 찾지 못했어요. 지금 계획이 이미 좋은 상태예요.</p>' : ''}`;
     $('#optOut').innerHTML = out;
     $('#optProg').hidden = true;
