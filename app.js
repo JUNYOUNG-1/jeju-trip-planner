@@ -920,8 +920,14 @@
   }
   function verifyPanel() {
     const text = window.JEJU_VERIFY ? window.JEJU_VERIFY.build(J) : '';
-    return `<section class="panel" style="display:grid;gap:8px">
-      <div class="panel-head" style="margin-bottom:0"><h3>다른 AI에게 정보 확인 맡기기</h3><div class="row"><button class="btn primary small" type="button" data-act="copy-verify">프롬프트 복사</button><a class="btn small" href="${REPO}VERIFY_PROMPT.md" target="_blank" rel="noopener">GitHub에서 보기</a></div></div>
+    const text2 = window.JEJU_VERIFY && window.JEJU_VERIFY.build2 ? window.JEJU_VERIFY.build2(J) : '';
+    const second = text2 ? `<section class="panel" style="display:grid;gap:8px">
+      <div class="panel-head" style="margin-bottom:0"><h3>2차 확인 — 1차에서 못 찾은 것만</h3><div class="row"><button class="btn primary small" type="button" data-act="copy-verify2">2차 프롬프트 복사</button><a class="btn small" href="${REPO}VERIFY_PROMPT_2.md" target="_blank" rel="noopener">GitHub에서 보기</a></div></div>
+      <p class="note">마라도 날짜별 시간표 형태, 반나절 방어 배, 휴무가 엇갈리는 귤밭, 농장 좌표, 빠진 숙소 가격처럼 11/15 조사에서 못 찾은 것만 다시 묻는 지시문이에요(${text2.split(String.fromCharCode(10)).length}줄). 돌아온 JSON을 Claude에게 주면 반영할게요.</p>
+      <textarea id="verifyText2" class="verify-text" readonly rows="6" aria-label="2차 확인 요청 프롬프트">${esc(text2)}</textarea>
+    </section>` : '';
+    return `${second}<section class="panel" style="display:grid;gap:8px">
+      <div class="panel-head" style="margin-bottom:0"><h3>1차 확인 프롬프트 (전체)</h3><div class="row"><button class="btn primary small" type="button" data-act="copy-verify">프롬프트 복사</button><a class="btn small" href="${REPO}VERIFY_PROMPT.md" target="_blank" rel="noopener">GitHub에서 보기</a></div></div>
       <p class="note">배 시간표, 귤밭 ${J.PLACES.filter(p => p.cat === 'tang').length}곳의 12/28~30 운영 여부, 방어 출조선, 카트, 숙소 가격 등을 인터넷에서 다시 확인하게 하는 지시문이에요(${text.split('\n').length}줄). 웹 검색이 되는 AI에 붙여 넣고, 돌아온 JSON을 Claude에게 주면 플래너 데이터에 반영할 수 있어요.</p>
       <textarea id="verifyText" class="verify-text" readonly rows="8" aria-label="확인 요청 프롬프트">${esc(text)}</textarea>
     </section>`;
@@ -1107,6 +1113,7 @@
     },
     'collect-refresh': () => loadCollect(),
     'collect-open': b => { const dec = decodeState(b.dataset.code); if (!dec) { toast('이 기록을 읽지 못했어요'); return; } if (!viewing) LS.set(KEY.mine, S); viewing = { name: dec.name, t: dec.t, memo: dec.memo }; LS.set(KEY.viewing, viewing); commit(dec.st, `${dec.name || '누군가'}님 계획 열기`); setTab('plan'); },
+    'copy-verify2': () => { const t = window.JEJU_VERIFY && window.JEJU_VERIFY.build2 ? window.JEJU_VERIFY.build2(J) : ''; copyText(t, 'verifyText2'); },
     'copy-verify': () => { const t = window.JEJU_VERIFY ? window.JEJU_VERIFY.build(J) : ''; copyText(t, 'verifyText'); },
     'copy-link': () => copyText(ui.shareLink, 'shareLink'),
     'native-share': async () => { try { await navigator.share({ title: '제주 동선', text: summaryText(S, EV, LS.get(KEY.name, ''), '', ''), url: ui.shareLink }); } catch (e) { /* 사용자가 취소 */ } },
