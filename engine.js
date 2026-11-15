@@ -67,7 +67,7 @@
   function visit(p, it, arrive, di) {
     const r = { arrive, start: arrive, end: arrive, wait: 0, active: 0, meal: 0, pen: 0, issues: [], detail: '' };
     const wd = J.DAYS[di].wd;
-    if (p.closed && p.closed.includes(wd)) { r.pen += 15; r.issues.push({ lv: 'err', code: 'closed', msg: `${J.DAYS[di].wdName}요일 휴무` }); }
+    if (p.closed && p.closed.includes(wd)) { r.pen += 15; r.issues.push({ lv: 'err', code: 'closed', msg: p.closedMsg || `${J.DAYS[di].wdName}요일 휴무` }); }
     if (p.slot) {
       const S = p.slot;
       const need = arrive + S.checkin;
@@ -89,7 +89,8 @@
       if (S.kind === 'ferry') {
         const arr = s + S.ride, stay = stayOf(p, it);
         const backs = S.back.map(tm);
-        let b = backs.find(x => x >= arr + stay);
+        const fixed = S.pair && S.pair[hm(s)];
+        let b = fixed ? tm(fixed) : backs.find(x => x >= arr + stay);
         if (b == null) {
           const ok = backs.filter(x => x >= arr + 20);
           b = ok.length ? ok[ok.length - 1] : null;
@@ -99,7 +100,7 @@
         r.island = [arr, b]; r.back = b;
         r.end = b + S.ride + 5;
         r.active = r.end - s;
-        r.detail = `${hm(s)} 출항 → ${hm(arr)} 도착 · 섬 ${dstr(b - arr)} → ${hm(b)} 귀항`;
+        r.detail = `${hm(s)} 출항 → ${hm(arr)} 도착 · 섬 ${dstr(b - arr)} → ${hm(b)} 귀항${S.tag && S.tag[hm(s)] ? ` (${S.tag[hm(s)]})` : ''}`;
       } else {
         const d = durOf(p, it);
         r.end = s + d + (S.post || 20);
@@ -438,7 +439,7 @@
         const g = BYGRP[p.grp] || [];
         if (g.length < 2) return null;
         const u = used(n);
-        const free = g.filter(id => !u[id]);
+        const free = g.filter(id => !u[id] && !PL[id].noAuto);
         if (!free.length) return null;
         const q = free[Math.floor(R() * free.length)];
         n.days[di][k] = Object.assign({}, x, { p: q, o: sanitizeOpts(PL[q], x.o) });

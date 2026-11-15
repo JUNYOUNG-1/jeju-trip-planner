@@ -11,7 +11,7 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
   const KEY = { cur: 'jeju.v1.current', mine: 'jeju.v1.mine', box: 'jeju.v1.box', tab: 'jeju.v1.tab', theme: 'jeju.v1.theme', name: 'jeju.v1.name', viewing: 'jeju.v1.viewing', mode: 'jeju.v1.mode' };
-  const DEFAULT_CFG = { arr: '08:30', pick: 40, dep: '18:00', ret: 90, start: '08:30', pace: 1, meals: true };
+  const DEFAULT_CFG = { arr: '08:30', pick: 50, dep: '18:00', ret: 90, start: '08:30', pace: 1, meals: true };
   const WISH = [
     { k: 'tang', label: '귤밭', test: p => p.cat === 'tang' },
     { k: 'kart', label: '카트', test: p => p.cat === 'kart' },
@@ -44,14 +44,14 @@
   /* ───── 상태 ───── */
   function planToState(pl, cfg) {
     return { v: 1, cfg: Object.assign({}, cfg || DEFAULT_CFG), lodge: pl.lodge.slice(), same: pl.lodge[0] === pl.lodge[1], lodgeLk: false, from: pl.id,
-      days: pl.days.map(d => d.map(x => ({ u: uid(), p: x.p, o: x.o ? Object.assign({}, x.o) : undefined, lk: {} }))) };
+      days: pl.days.map(d => d.map(x => ({ u: uid(), p: (J.ALIAS && J.ALIAS[x.p]) || x.p, o: x.o ? Object.assign({}, x.o) : undefined, lk: {} }))) };
   }
   function sanitize(st) {
     if (!st || !Array.isArray(st.days) || st.days.length !== 3) return null;
     st.cfg = Object.assign({}, DEFAULT_CFG, st.cfg || {});
     st.lodge = (Array.isArray(st.lodge) ? st.lodge : ['SEO', 'SEO']).slice(0, 2).map(z => (J.LODGE[z] ? z : 'SEO'));
     if (st.lodge.length < 2) st.lodge[1] = st.lodge[0];
-    st.days = st.days.map(d => (Array.isArray(d) ? d : []).filter(x => x && PL[x.p]).map(x => ({ u: x.u || uid(), p: x.p, o: x.o && Object.keys(x.o).length ? x.o : undefined, lk: x.lk || {} })));
+    st.days = st.days.map(d => (Array.isArray(d) ? d : []).map(x => (x && J.ALIAS && J.ALIAS[x.p] ? Object.assign({}, x, { p: J.ALIAS[x.p] }) : x)).filter(x => x && PL[x.p]).map(x => ({ u: x.u || uid(), p: x.p, o: x.o && Object.keys(x.o).length ? x.o : undefined, lk: x.lk || {} })));
     st.same = st.lodge[0] === st.lodge[1] && st.same !== false;
     st.lodgeLk = !!st.lodgeLk;
     return st;
@@ -161,7 +161,7 @@
         <label class="field">일정 강도<select id="cfg-pace" data-chg="cfg" data-f="pace">${[0, 1, 2].map(v => `<option value="${v}" ${v === c.pace ? 'selected' : ''}>${['여유 (장소마다 15분 여유)', '보통 (10분)', '빡빡 (6분)'][v]}</option>`).join('')}</select></label>
         <label class="check" style="align-self:end"><input type="checkbox" id="cfg-meals" data-chg="cfg" data-f="meals" ${c.meals ? 'checked' : ''}> 점심·저녁 시간 자동으로 넣기</label>
       </div>
-      <p class="note" style="margin-top:8px">새벽 낚시가 첫 일정이면 출발 시각은 배 시간에 맞춰 자동으로 당겨져요. 3일차는 귀국편 ${c.ret}분 전(${hm(tm(c.dep) - c.ret)})까지 공항에 도착해야 감점이 없어요. 현재: ${esc(paceName)}.</p>
+      <p class="note" style="margin-top:8px">아침 배 낚시가 첫 일정이면 출발 시각은 배 시간에 맞춰 자동으로 당겨져요. 3일차는 귀국편 ${c.ret}분 전(${hm(tm(c.dep) - c.ret)})까지 공항에 도착해야 감점이 없어요. 현재: ${esc(paceName)}.</p>
     </details></section>`;
   }
   function lodgeOptions(sel) { return J.LORDER.map(z => `<option value="${z}" ${z === sel ? 'selected' : ''}>${esc(J.LODGE[z].label)}</option>`).join(''); }
@@ -210,7 +210,7 @@
     if (S2.kind === 'ferry') {
       const outs = S2.out;
       return `<select class="sel" aria-label="출항 시각" data-chg="slot" data-di="${di}" data-k="${k}"><option value="">출항 자동 (가장 빠른 배)</option>${outs.map(v => `<option value="${v}" ${o.slot === v ? 'selected' : ''}>${v} 출항</option>`).join('')}</select>
-        <select class="sel" aria-label="섬 체류" data-chg="stay" data-di="${di}" data-k="${k}">${S2.stayOpts.map(v => `<option value="${v}" ${(o.stay || S2.stay) === v ? 'selected' : ''}>섬 ${dstr(v)}${v === S2.stay ? ' (기본)' : ''}</option>`).join('')}</select>`;
+        ${S2.pair ? '<span class="small muted">귀항편 고정</span>' : `<select class="sel" aria-label="섬 체류" data-chg="stay" data-di="${di}" data-k="${k}">${S2.stayOpts.map(v => `<option value="${v}" ${(o.stay || S2.stay) === v ? 'selected' : ''}>섬 ${dstr(v)}${v === S2.stay ? ' (기본)' : ''}</option>`).join('')}</select>`}`;
     }
     const outs = S2.outOpts || S2.out;
     return `<select class="sel" aria-label="출항 시각" data-chg="slot" data-di="${di}" data-k="${k}"><option value="">출항 ${S2.out[0]} (기본)</option>${outs.map(v => `<option value="${v}" ${o.slot === v ? 'selected' : ''}>${v} 출항</option>`).join('')}</select>
@@ -300,8 +300,8 @@
     { k: 'flower', label: '동백꽃 명소', test: p => p.cat === 'flower', seed: 'x_camellia' },
     { k: 'spa', label: '탄산온천', test: p => p.id === 'x_spa', seed: 'x_spa' }
   ];
-  const WSEED = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_moseul_am', olle: 'o10a' };
-  const WDESC = { tang: '귤 따기 체험', kart: '카트 타기', marado: '배 타고 가서 짜장면', udo: '배 15분, 섬 한 바퀴', fish: '배 낚시 3~4시간', olle: '바닷길 걷기 2~3시간' };
+  const WSEED = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_gm_am', olle: 'o10a' };
+  const WDESC = { tang: '귤 따기 체험', kart: '카트 타기', marado: '배 타고 가서 짜장면', udo: '배 15분, 섬 한 바퀴', fish: '배 지깅 3~4시간', olle: '바닷길 걷기 2~3시간' };
   const WCOLOR = { tang: '--accent', kart: '--kart', marado: '--sea', udo: '--sea', fish: '--navy', olle: '--olle' };
   let ezRun = null;
   const ezBase = () => clone(ezRun ? ezRun.base : S);
@@ -317,7 +317,7 @@
     if (!base.days.some(d => d.length)) { ezRun = null; commit(base, msg); return; }
     const run = { base, cancel: false };
     ezRun = run;
-    const o = E.createOptimizer(base, { allowDay: true, allowPlace: true, allowLodge: !base.lodgeLk });
+    const o = E.createOptimizer(base, { allowDay: true, allowPlace: true, allowLodge: !base.lodgeLk, iters: 6000, restarts: 5 });
     render();
     const tick = () => {
       if (run.cancel) return;
@@ -339,10 +339,17 @@
       ezBuild(n, `${w.label} 뺌`);
       return;
     }
-    const sea = PL[seed].sea;
-    const cnt = n.days.map((d, i) => d.length + (sea && i === 2 ? 99 : 0));
-    n.days[cnt.indexOf(Math.min(...cnt))].push({ u: uid(), p: seed, lk: {} });
-    ezBuild(n, `${w.label} 넣음`);
+    // 가장 좋은 날·자리에 먼저 끼워 넣고(3일차엔 배 일정 제외) 그다음 전체를 다시 짠다
+    let start = null;
+    try { start = clone(E.addDeltas(n, E.evaluate(n), seed).best.s); } catch (e) { start = null; }
+    if (!start) {
+      const sea = PL[seed].sea;
+      const cnt = n.days.map((d, i) => d.length + (sea && i === 2 ? 99 : 0));
+      n.days[cnt.indexOf(Math.min(...cnt))].push({ u: uid(), p: seed, lk: {} });
+      start = n;
+    }
+    start.days.forEach(d => d.forEach(x => { if (!x.u) x.u = uid(); if (!x.lk) x.lk = {}; }));
+    ezBuild(start, `${w.label} 넣음`);
   }
   function ezTile(w, st) {
     const f = findWish(st, w.test);
@@ -588,7 +595,7 @@
     const closed = closedOnTrip(p);
     const meta = [
       ['주소', p.addr], ['시간', p.slot ? (p.slot.kind === 'ferry' ? `출항 ${p.slot.out.slice(0, 8).join(' · ')}${p.slot.out.length > 8 ? ' …' : ''}` : `출항 ${(p.slot.outOpts || p.slot.out).join(' · ')} · ${dstr(p.slot.dur)}`) : (p.open ? `${p.open}~${p.close}${p.last ? ` (입장 ${p.last}까지)` : ''}` : '')],
-      ['휴무', closedText(p)], ['가격', p.price], ['내용', p.prog], ['예약', p.res], ['소요', p.slot ? '' : (p.dur ? dstr(p.dur) + (p.km ? ` · ${p.km}km` : '') : '')]
+      ['휴무', p.closedMsg || closedText(p)], ['가격', p.price], ['비 오면', p.vrain], ['내용', p.prog], ['예약', p.res], ['소요', p.slot ? '' : (p.dur ? dstr(p.dur) + (p.km ? ` · ${p.km}km` : '') : '')]
     ].filter(x => x[1]);
     let foot = '';
     if (!o.compact || true) {
@@ -607,6 +614,7 @@
       ${p.note ? `<p class="note">${esc(p.note)}</p>` : ''}
       ${closed.length ? `<div class="callout warn small">이번 일정 중 휴무: ${closed.map(d => `${d.date}(${d.wdName})`).join(', ')}</div>` : ''}
       ${p.warn ? `<div class="callout warn small">${esc(p.warn)}</div>` : ''}
+      ${p.vconf ? `<div class="callout small vbox"><b>11/15 인터넷 확인</b> · 신뢰도 ${esc(p.vconf)}${p.vnote ? `<br>${esc(p.vnote)}` : ''}${p.vsrc && p.vsrc.length ? `<br>${p.vsrc.slice(0, 2).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">출처${i + 1}</a>`).join(' · ')}` : ''}</div>` : ''}
       ${p.chk ? '<div class="small muted">운영 여부·시간·가격은 출발 전 전화로 다시 확인</div>' : ''}
       ${swap}
       <div class="foot">${foot}${p.src ? `<a class="small" href="${esc(p.src)}" target="_blank" rel="noopener">출처</a>` : ''}</div>
@@ -709,7 +717,7 @@
     </article>`;
   }
   function shortName(p) {
-    const m = { m_songak: '마라도(송악산항)', m_unjin: '마라도(운진항)', u_seongsan: '우도', f_moseul_am: '방어낚시(새벽)', f_moseul_pm: '방어낚시(오후)', x_bangeo: '방어회 저녁' };
+    const m = { m_songak: '마라도(송악산항)', m_unjin: '마라도(운진항)', u_seongsan: '우도', f_gm_am: '방어낚시(하효항 오전)', f_gm_pm: '방어낚시(하효항 오후)', f_baek_pm: '방어낚시(위미항 오후)', f_moseul_day: '방어낚시(모슬포 종일)', x_bangeo: '방어회 저녁' };
     if (m[p.id]) return m[p.id];
     return p.name.replace(/\s*\(.*?\)\s*/g, ' ').replace(/ · .*$/, '').replace(/ — .*$/, '').trim();
   }
@@ -726,7 +734,7 @@
           <thead><tr><th>순위</th><th>동네 (2박)</th><th class="num">점수</th><th class="num">지금 대비</th><th class="num">총 운전</th><th class="num">1·2·3일차 운전</th><th class="num">2일차 출발</th><th>가격대</th><th></th></tr></thead>
           <tbody>${rows.map((r, i) => `<tr class="${curKey === r.z + '/' + r.z ? 'cur' : ''}"><td class="num">${i + 1}</td><td><b>${esc(J.LODGE[r.z].label)}</b></td><td class="num">${fmt1(r.score)}</td><td class="num">${deltaHtml(r.score - EV.score)}</td><td class="num">${dstr(r.travel)}</td><td class="num">${r.perDay.map(m => m + '분').join(' · ')}</td><td class="num">${hm(r.early)}</td><td>${esc(J.LODGE[r.z].tier)}</td><td><button class="btn small" type="button" data-act="lodge-set" data-z="${r.z}">이 동네로</button></td></tr>`).join('')}</tbody>
         </table></div>
-        <p class="note" style="margin-top:8px">가격대(연말, 2인 1박 추정): ₩ 5~12만 · ₩₩ 12~25만 · ₩₩₩ 25만 이상. 실제 요금은 예약 사이트에서 확인하세요. 한 곳에서 2박이 어렵다면 "베스트 동선 10"의 숙소 나누기 안(사계 → 성산)과 비교해 보세요.</p>
+        <p class="note" style="margin-top:8px">가격대(12/28 체크인·2인 1박, 11/15 예약 사이트 표시가 기준): ₩ 5~12만 · ₩₩ 12~25만 · ₩₩₩ 25만 이상. 실제 요금은 예약 사이트에서 확인하세요. 한 곳에서 2박이 어렵다면 "베스트 동선 10"의 숙소 나누기 안(사계 → 성산)과 비교해 보세요.</p>
       </section>
       <div class="zones">${J.LORDER.map(z => { const L = J.LODGE[z]; return `<div class="zone-card"><h4>${esc(L.label)} <span class="tag">${esc(L.tier)}</span></h4><p class="small"><span style="color:var(--ok)">장점</span> ${esc(L.pros)}</p><p class="small"><span style="color:var(--warn)">단점</span> ${esc(L.cons)}</p><p class="note">${L.ex.map(esc).join(' · ')}</p></div>`; }).join('')}</div>
     </div>`;
@@ -739,8 +747,9 @@
       ${f.warn ? `<div class="callout warn small">${esc(f.warn)}</div>` : ''}<a class="small" href="${esc(f.src)}" target="_blank" rel="noopener">출처</a></div>`).join('');
     const used = S.days.flat().map(x => PL[x.p]);
     const checklist = used.filter(p => p.res && p.res !== '없음' && p.res !== '현장').map(p => `<li><b>${esc(p.name)}</b> — ${esc(p.res)}${p.chk ? ' <span class="pill warn">확인 필요</span>' : ''}</li>`).join('');
+    const vsum = J.VNOTES ? `<section class="panel"><div class="panel-head"><h3>11/15 인터넷 확인 요약</h3><span class="note">다른 AI가 찾은 결과를 반영했어요. 출처가 약한 값은 장소 카드에 신뢰도로 표시돼요.</span></div><dl class="kv">${J.VNOTES.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></section>` : '';
     return `<div class="view">
-      ${verifyPanel()}
+      ${vsum}${verifyPanel()}
       <div class="two">${ferry}
         <div class="panel"><h3>배 탈 때 꼭 알아둘 것</h3><ul class="list" style="margin-top:8px">
           <li>마라도·가파도·우도·비양도 모두 <b>신분증 원본</b>이 필요해요(모바일 신분증 가능한 곳 있음). 승선신고서를 작성해요.</li>
@@ -1062,7 +1071,7 @@
     'opt-apply': () => { const r = optRun && optRun.result; closeModal(); if (r) { const n = clone(r); n.from = null; commit(n, '자동 최적화 적용'); setTab('plan'); } },
     'auto-build': () => {
       const ks = [...document.querySelectorAll('.wish:checked')].map(x => x.value);
-      const pickIds = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_moseul_am', olle: 'o10a', flower: 'x_camellia', spa: 'x_spa', bangeo: 'x_bangeo' };
+      const pickIds = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_gm_am', olle: 'o10a', flower: 'x_camellia', spa: 'x_spa', bangeo: 'x_bangeo' };
       const ids = ks.map(k => pickIds[k]).filter(Boolean);
       if (!ids.length) { toast('하나 이상 골라 주세요'); return; }
       const n = { v: 1, cfg: Object.assign({}, S.cfg), lodge: ['SEO', 'SEO'], same: true, lodgeLk: false, days: [[], [], []] };
