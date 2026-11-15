@@ -10,7 +10,7 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 불가 환경 */ } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
-  const KEY = { cur: 'jeju.v1.current', mine: 'jeju.v1.mine', box: 'jeju.v1.box', tab: 'jeju.v1.tab', theme: 'jeju.v1.theme', name: 'jeju.v1.name', viewing: 'jeju.v1.viewing' };
+  const KEY = { cur: 'jeju.v1.current', mine: 'jeju.v1.mine', box: 'jeju.v1.box', tab: 'jeju.v1.tab', theme: 'jeju.v1.theme', name: 'jeju.v1.name', viewing: 'jeju.v1.viewing', mode: 'jeju.v1.mode' };
   const DEFAULT_CFG = { arr: '08:30', pick: 40, dep: '18:00', ret: 90, start: '08:30', pace: 1, meals: true };
   const WISH = [
     { k: 'tang', label: '귤밭', test: p => p.cat === 'tang' },
@@ -63,6 +63,7 @@
   let tab = LS.get(KEY.tab, 'plan');
   if (!TABS.some(t => t.id === tab)) tab = 'plan';
   let viewing = LS.get(KEY.viewing, null);
+  let mode = LS.get(KEY.mode, 'easy') === 'pro' ? 'pro' : 'easy';
   const ui = { pickCat: 'tang', pickArea: 'all', pickTags: [], pickQ: '', pickHideClosed: false, mapDay: 0, mapAll: true, mapSel: null, bestSort: 'score', cfgOpen: false, shareLink: '', saveName: null, saveMemo: '', collect: { status: 'idle', items: [], err: '', t: 0 } };
   let CACHE = {};
   const sig = () => JSON.stringify([S.cfg, S.lodge, S.same, S.days.map(d => d.map(x => [x.p, x.o || 0]))]);
@@ -282,10 +283,147 @@
       ${planIssues.length ? `<div class="issues" style="margin-top:8px">${planIssues.map(issueChip).join('')}</div>` : ''}
     </section>`;
   }
+  function modeSwitch() {
+    return `<div class="ez-top"><div class="seg" role="group" aria-label="일정 화면 방식"><button type="button" data-act="mode" data-m="easy" aria-pressed="${mode === 'easy'}">쉽게 짜기</button><button type="button" data-act="mode" data-m="pro" aria-pressed="${mode === 'pro'}">자세히 고치기</button></div>
+      <span class="note">${mode === 'easy' ? '하고 싶은 것만 고르면 날짜·순서·장소는 알아서 정해져요' : '시간·순서·배 시간까지 하나하나 고쳐요'}</span></div>`;
+  }
   function viewPlan() {
-    return `<div class="view">${viewingBanner()}${renderSettings()}${renderLodge()}${renderToolbar()}
+    if (mode === 'easy') return viewEasy();
+    return `<div class="view">${modeSwitch()}${viewingBanner()}${renderSettings()}${renderLodge()}${renderToolbar()}
       <div class="days">${[0, 1, 2].map(renderDay).join('')}</div>
       ${renderExplain()}</div>`;
+  }
+
+  /* ───── 쉽게 짜기 ───── */
+  const EXTRA = [
+    { k: 'bangeo', label: '방어회 저녁', test: p => p.id === 'x_bangeo', seed: 'x_bangeo' },
+    { k: 'flower', label: '동백꽃 명소', test: p => p.cat === 'flower', seed: 'x_camellia' },
+    { k: 'spa', label: '탄산온천', test: p => p.id === 'x_spa', seed: 'x_spa' }
+  ];
+  const WSEED = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_moseul_am', olle: 'o10a' };
+  const WDESC = { tang: '귤 따기 체험', kart: '카트 타기', marado: '배 타고 가서 짜장면', udo: '배 15분, 섬 한 바퀴', fish: '배 낚시 3~4시간', olle: '바닷길 걷기 2~3시간' };
+  const WCOLOR = { tang: '--accent', kart: '--kart', marado: '--sea', udo: '--sea', fish: '--navy', olle: '--olle' };
+  let ezRun = null;
+  const ezBase = () => clone(ezRun ? ezRun.base : S);
+  function findWish(st, test) {
+    for (let di = 0; di < 3; di++) { const k = st.days[di].findIndex(x => PL[x.p] && test(PL[x.p])); if (k >= 0) return { di, k, p: PL[st.days[di][k].p] }; }
+    return null;
+  }
+  const timeOpts = (from, to, cur) => { const a = []; for (let t = tm(from); t <= tm(to); t += 5) a.push(hm(t)); if (!a.includes(cur)) { a.push(cur); a.sort(); } return a.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${v}</option>`).join(''); };
+  /* 바뀐 조건으로 날짜·순서·장소·숙소를 다시 계산해서 적용 (계산 중 다른 걸 누르면 새로 시작) */
+  function ezBuild(base, msg) {
+    if (ezRun) ezRun.cancel = true;
+    base = sanitize(base); base.from = null;
+    if (!base.days.some(d => d.length)) { ezRun = null; commit(base, msg); return; }
+    const run = { base, cancel: false };
+    ezRun = run;
+    const o = E.createOptimizer(base, { allowDay: true, allowPlace: true, allowLodge: !base.lodgeLk });
+    render();
+    const tick = () => {
+      if (run.cancel) return;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 40) { if (o.run(120)) break; }
+      const bar = $('#ezProg i'); if (bar) bar.style.width = Math.round(o.progress * 100) + '%';
+      if (!o.done) { setTimeout(tick, 0); return; }
+      ezRun = null;
+      const r = clone(o.result()); r.from = null;
+      commit(r, msg);
+    };
+    setTimeout(tick, 20);
+  }
+  function ezToggle(w, seed) {
+    if (!w) return;
+    const n = ezBase();
+    if (findWish(n, w.test)) {
+      n.days = n.days.map(d => d.filter(x => !(PL[x.p] && w.test(PL[x.p]))));
+      ezBuild(n, `${w.label} 뺌`);
+      return;
+    }
+    const sea = PL[seed].sea;
+    const cnt = n.days.map((d, i) => d.length + (sea && i === 2 ? 99 : 0));
+    n.days[cnt.indexOf(Math.min(...cnt))].push({ u: uid(), p: seed, lk: {} });
+    ezBuild(n, `${w.label} 넣음`);
+  }
+  function ezTile(w, st) {
+    const f = findWish(st, w.test);
+    return `<button type="button" class="ez-tile" data-act="ez-wish" data-k="${w.k}" aria-pressed="${!!f}" style="--c:var(${WCOLOR[w.k]})">
+      <span class="ck" aria-hidden="true"></span><span class="nm">${esc(w.label)}</span><span class="ds">${esc(WDESC[w.k])}</span>
+      ${f ? `<span class="at">${f.di + 1}일차 · ${esc(shortName(f.p))}</span>` : '<span class="ds">누르면 넣어요</span>'}</button>`;
+  }
+  function viewEasy() {
+    const st = ezRun ? ezRun.base : S;
+    const c = st.cfg;
+    const extras = EXTRA.map(x => { const on = !!findWish(st, x.test); return `<button type="button" class="chip" data-act="ez-extra" data-k="${x.k}" aria-pressed="${on}">${on ? '✓ ' : '+ '}${esc(x.label)}</button>`; }).join('');
+    return `<div class="view">
+      ${modeSwitch()}${viewingBanner()}
+      <section class="panel">
+        <div class="ez-h"><span class="ez-n">1</span><h3>하고 싶은 것</h3><span class="note">눌러서 넣고 빼면 일정이 다시 짜여요</span></div>
+        <div class="ez-tiles">${WISH.map(w => ezTile(w, st)).join('')}</div>
+        <div class="row ez-extra"><span class="note">곁들이면 좋은 것</span>${extras}</div>
+      </section>
+      <div class="ez-two">
+        <section class="panel">
+          <div class="ez-h"><span class="ez-n">2</span><h3>숙소 동네</h3><span class="note">2박 모두 한 곳</span></div>
+          <div class="row"><button type="button" class="chip" data-act="ez-lodge-auto" aria-pressed="${!st.lodgeLk}">알아서 골라줘</button>
+            <select class="sel ez-lodge" aria-label="숙소 동네 직접 고르기" data-chg="ez-lodge">${st.lodgeLk ? '' : '<option value="" selected>직접 고르기…</option>'}${lodgeOptions(st.lodgeLk ? st.lodge[0] : '')}</select></div>
+          <p class="note" style="margin-top:8px">지금: <b>${esc(lodgeText(st))}</b>${st.lodgeLk ? '' : ' (일정에 맞춰 고른 곳)'} · <button type="button" class="linkbtn" data-act="tab" data-tab="stay">동네 비교</button></p>
+        </section>
+        <section class="panel">
+          <div class="ez-h"><span class="ez-n">3</span><h3>비행기 시간</h3></div>
+          <div class="ez-flight">
+            <label class="field">12/28 제주 도착<select data-chg="ez-cfg" data-f="arr">${timeOpts('06:00', '13:00', c.arr)}</select></label>
+            <label class="field">12/30 제주 출발<select data-chg="ez-cfg" data-f="dep">${timeOpts('11:00', '22:30', c.dep)}</select></label>
+          </div>
+        </section>
+      </div>
+      ${ezResult()}
+    </div>`;
+  }
+  function ezResult() {
+    const g = E.grade(EV.score);
+    const busy = !!ezRun;
+    return `<section class="panel ez-res ${busy ? 'busy' : ''}">
+      <div class="ez-sum">
+        <div><div class="eyebrow">내 일정</div>
+          <div class="ez-score"><b>${fmt1(EV.score)}</b><span>점</span><span class="pill ${g.tone}">${g.label}</span></div>
+          <div class="note">운전 ${dstr(EV.tot.travel)} · 체험 ${dstr(EV.tot.active)} · ${esc(lodgeText(S))}${EV.nErr ? ` · <b style="color:var(--err)">문제 ${EV.nErr}개</b>` : ''}</div></div>
+        <div class="row"><button class="btn primary" type="button" data-act="ez-build" ${busy ? 'disabled' : ''}>${busy ? '새로 짜는 중…' : '다시 짜기'}</button><button class="btn" type="button" data-act="undo" ${undoStack.length && !busy ? '' : 'disabled'}>되돌리기</button></div>
+      </div>
+      ${busy ? '<div class="progress" id="ezProg"><i></i></div>' : ''}
+      <div class="days">${[0, 1, 2].map(ezDay).join('')}</div>
+      <p class="note" style="margin-top:12px">시간·순서·배 시간을 하나씩 고치려면 <button type="button" class="linkbtn" data-act="mode" data-m="pro">자세히 고치기</button>, 미리 짜 둔 10가지 중에서 고르려면 <button type="button" class="linkbtn" data-act="tab" data-tab="best">베스트 동선 10</button>.</p>
+    </section>`;
+  }
+  function ezDay(di) {
+    const d = EV.days[di];
+    const rows = d.rows.map(r => {
+      if (r.type === 'start' || r.type === 'end') return `<li class="ez-se"><span class="t">${hm(r.t)}</span><span>${esc(r.label)}</span></li>`;
+      if (r.type === 'drive') return `<li class="ez-drive"><span class="t"></span><span>↓ 차로 ${r.min}분</span></li>`;
+      if (r.type === 'meal') return `<li class="ez-meal"><span class="t">${hm(r.t)}</span><span>${r.kind === 'lunch' ? '점심' : '저녁'} · ${esc(r.note || '근처 식당')}</span></li>`;
+      if (r.type === 'free') return (r.end - r.t < 30) ? '' : `<li class="ez-drive"><span class="t"></span><span>쉬는 시간 ${dstr(r.end - r.t)}</span></li>`;
+      if (r.type !== 'act') return '';
+      const p = r.p, v = r.v, k = r.k, it = r.it;
+      const g = E.BYGRP[p.grp] || [];
+      const iss = v.issues.filter(x => x.lv !== 'info');
+      const sub = p.slot ? v.detail : `${hm(v.start)}~${hm(v.end)} · ${zshort(p.zone)}`;
+      return `<li class="ez-act" style="--c:var(${CATVAR[p.cat]})"><span class="t">${hm(v.start)}</span>
+        <div class="b"><div class="nm"><b>${esc(shortName(p))}</b>${it.lk && it.lk.p ? '<span class="pill info">직접 고름</span>' : ''}</div>
+          <div class="sub">${esc(sub)}</div>
+          ${iss.length ? `<div class="issues">${iss.map(issueChip).join('')}</div>` : ''}
+          <div class="ez-ctrl">${g.length > 1 ? `<button class="btn small" type="button" data-act="swap" data-di="${di}" data-k="${k}">다른 곳으로</button>` : ''}<button class="btn small" type="button" data-act="info" data-id="${p.id}">정보</button><button class="btn small ghost" type="button" data-act="ez-del" data-di="${di}" data-k="${k}">빼기</button></div>
+        </div></li>`;
+    }).join('');
+    const dayIssues = d.issues.filter(x => !x.pid && x.lv !== 'info');
+    const used = {}; S.days.flat().forEach(x => { used[x.p] = 1; });
+    const pb = S.days[di].filter(x => PL[x.p].sea).map(x => { const a = E.planB(x.p, used).slice(0, 2); return a.length ? `${esc(shortName(PL[x.p]))} 배가 안 뜨면 → ${a.map(y => esc(shortName(y.q))).join(' 또는 ')}` : ''; }).filter(Boolean);
+    const margin = di === 2 && d.margin != null ? ` · 공항 여유 ${d.margin >= 0 ? dstr(d.margin) : '<b style="color:var(--err)">부족 ' + dstr(-d.margin) + '</b>'}` : '';
+    return `<article class="day" style="--dc:var(${DAYVAR[di]})">
+      <div class="day-head"><h3>${J.DAYS[di].label} <small>${wdOf(di)}</small></h3>
+        <div class="note">운전 ${dstr(d.travel)}${margin}</div>
+        ${dayIssues.length ? `<div class="issues">${dayIssues.map(issueChip).join('')}</div>` : ''}</div>
+      <ol class="ez-list">${rows}</ol>
+      ${pb.length ? `<div class="ez-pb note">${pb.join('<br>')}</div>` : ''}
+    </article>`;
   }
 
   /* ───── 지도 ───── */
@@ -797,6 +935,12 @@
   const ACT = {
     'tab': b => setTab(b.dataset.tab),
     'goto-plan': () => { closeModal(); setTab('plan'); },
+    'mode': b => { mode = b.dataset.m === 'pro' ? 'pro' : 'easy'; LS.set(KEY.mode, mode); if (tab !== 'plan') setTab('plan'); else { render(); window.scrollTo(0, 0); } },
+    'ez-wish': b => ezToggle(WISH.find(w => w.k === b.dataset.k), WSEED[b.dataset.k]),
+    'ez-extra': b => { const x = EXTRA.find(w => w.k === b.dataset.k); if (x) ezToggle(x, x.seed); },
+    'ez-lodge-auto': () => { const n = ezBase(); if (!n.lodgeLk && n.same) return; n.lodgeLk = false; n.same = true; n.lodge[1] = n.lodge[0]; ezBuild(n, '숙소 동네는 알아서'); },
+    'ez-build': () => ezBuild(ezBase(), '일정 다시 짰어요'),
+    'ez-del': b => { if (ezRun) return; const n = ezBase(); const [x] = n.days[+b.dataset.di].splice(+b.dataset.k, 1); if (x) ezBuild(n, `${shortName(PL[x.p])} 뺌`); },
     'up': b => { const n = st2(), di = +b.dataset.di, k = +b.dataset.k; const d = n.days[di]; [d[k - 1], d[k]] = [d[k], d[k - 1]]; commit(n, '순서 바꿈'); },
     'down': b => { const n = st2(), di = +b.dataset.di, k = +b.dataset.k; const d = n.days[di]; [d[k + 1], d[k]] = [d[k], d[k + 1]]; commit(n, '순서 바꿈'); },
     'del': b => { const n = st2(), di = +b.dataset.di, k = +b.dataset.k; const [x] = n.days[di].splice(k, 1); commit(n, `${PL[x.p].name} 삭제 (되돌리기 가능)`); },
@@ -878,7 +1022,9 @@
     'slot': el => { const n = st2(); const it = n.days[+el.dataset.di][+el.dataset.k]; it.o = Object.assign({}, it.o); if (el.value) it.o.slot = el.value; else delete it.o.slot; commit(n, el.value ? `${el.value} 출항으로` : '출항 자동'); },
     'stay': el => { const n = st2(); const it = n.days[+el.dataset.di][+el.dataset.k]; it.o = Object.assign({}, it.o, { stay: +el.value }); commit(n, `섬 체류 ${dstr(+el.value)}`); },
     'dur': el => { const n = st2(); const it = n.days[+el.dataset.di][+el.dataset.k]; it.o = Object.assign({}, it.o, { dur: +el.value }); commit(n, `머무는 시간 ${dstr(+el.value)}`); },
-    'pickHide': el => { ui.pickHideClosed = el.checked; render(); }
+    'pickHide': el => { ui.pickHideClosed = el.checked; render(); },
+    'ez-cfg': el => { const v = el.value; if (!/^\d\d:\d\d$/.test(v)) return; const n = ezBase(); n.cfg[el.dataset.f] = v; ezBuild(n, el.dataset.f === 'arr' ? `제주 도착 ${v}` : `귀국편 ${v}`); },
+    'ez-lodge': el => { if (!el.value || !J.LODGE[el.value]) return; const n = ezBase(); n.lodge = [el.value, el.value]; n.same = true; n.lodgeLk = true; ezBuild(n, `숙소 → ${J.LODGE[el.value].label}`); }
   };
   document.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; const f = ACT[b.dataset.act]; if (f) f(b, e); });
   document.addEventListener('change', e => { const el = e.target.closest('[data-chg]'); if (!el) return; const f = CHG[el.dataset.chg]; if (f) f(el, e); });
