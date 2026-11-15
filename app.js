@@ -35,6 +35,8 @@
     { id: 'best', label: '베스트 동선 10' }, { id: 'stay', label: '숙소' }, { id: 'info', label: '배편·정보' }, { id: 'save', label: '저장·공유' }
   ];
   const DAYVAR = ['--d1', '--d2', '--d3'];
+  const COLLECT = String((window.JEJU_CONFIG && window.JEJU_CONFIG.collectUrl) || '').trim();
+  const REPO = 'https://github.com/JUNYOUNG-1/jeju-trip-planner/blob/main/';
   let uidN = 0;
   const uid = () => 'i' + Date.now().toString(36) + (uidN++).toString(36);
   const clone = o => JSON.parse(JSON.stringify(o));
@@ -61,7 +63,7 @@
   let tab = LS.get(KEY.tab, 'plan');
   if (!TABS.some(t => t.id === tab)) tab = 'plan';
   let viewing = LS.get(KEY.viewing, null);
-  const ui = { pickCat: 'tang', pickArea: 'all', pickTags: [], pickQ: '', pickHideClosed: false, mapDay: 0, mapAll: true, mapSel: null, bestSort: 'score', cfgOpen: false, shareLink: '' };
+  const ui = { pickCat: 'tang', pickArea: 'all', pickTags: [], pickQ: '', pickHideClosed: false, mapDay: 0, mapAll: true, mapSel: null, bestSort: 'score', cfgOpen: false, shareLink: '', saveName: null, saveMemo: '', collect: { status: 'idle', items: [], err: '', t: 0 } };
   let CACHE = {};
   const sig = () => JSON.stringify([S.cfg, S.lodge, S.same, S.days.map(d => d.map(x => [x.p, x.o || 0]))]);
   function cached(key, fn) { const k = key + '|' + sig(); if (!(k in CACHE)) CACHE[k] = fn(); return CACHE[k]; }
@@ -507,6 +509,7 @@
     const used = S.days.flat().map(x => PL[x.p]);
     const checklist = used.filter(p => p.res && p.res !== '없음' && p.res !== '현장').map(p => `<li><b>${esc(p.name)}</b> — ${esc(p.res)}${p.chk ? ' <span class="pill warn">확인 필요</span>' : ''}</li>`).join('');
     return `<div class="view">
+      ${verifyPanel()}
       <div class="two">${ferry}
         <div class="panel"><h3>배 탈 때 꼭 알아둘 것</h3><ul class="list" style="margin-top:8px">
           <li>마라도·가파도·우도·비양도 모두 <b>신분증 원본</b>이 필요해요(모바일 신분증 가능한 곳 있음). 승선신고서를 작성해요.</li>
@@ -599,9 +602,9 @@
       <div class="two">
         <section class="panel" style="display:grid;gap:10px">
           <h2>이 계획 저장·공유</h2>
-          <p class="note">저장하면 지금 고른 내용이 통째로 담긴 <b>링크</b>가 만들어져요. 그 링크를 카톡으로 보내면 받은 사람이 같은 화면(점수·일정·숙소)을 그대로 보고, 자기 비교함에도 자동으로 담겨요. 서버에 저장하지 않으니 링크를 잃어버리면 다시 만들어야 해요.</p>
-          <label class="field">이름 (누가 고른 계획인지)<input id="saveName" type="text" maxlength="20" value="${esc(name)}" placeholder="예: 준영"></label>
-          <label class="field">메모 (선택)<textarea id="saveMemo" rows="2" maxlength="120" placeholder="예: 우도는 꼭! 낚시는 오후가 좋아"></textarea></label>
+          <p class="note">${COLLECT ? '저장하면 아래 <b>모두의 선택</b> 표에 올라가고, ' : '저장하면 '}지금 고른 내용이 통째로 담긴 <b>링크</b>도 만들어져요. 그 링크를 카톡으로 보내면 받은 사람이 같은 화면(점수·일정·숙소)을 그대로 보고, 자기 비교함에도 자동으로 담겨요. 서버에 저장하지 않으니 링크를 잃어버리면 다시 만들어야 해요.</p>
+          <label class="field">이름 (누가 고른 계획인지)<input id="saveName" type="text" maxlength="20" value="${esc(ui.saveName != null ? ui.saveName : name)}" placeholder="예: 준영"></label>
+          <label class="field">메모 (선택)<textarea id="saveMemo" rows="2" maxlength="120" placeholder="예: 우도는 꼭! 낚시는 오후가 좋아">${esc(ui.saveMemo)}</textarea></label>
           <div class="row">
             <button class="btn primary" type="button" data-act="save-share">저장하고 링크 만들기</button>
             <button class="btn" type="button" data-act="copy-text">카톡용 요약 복사</button>
@@ -617,6 +620,7 @@
           <pre class="small" style="white-space:pre-wrap;margin:0;font-family:var(--f-body)">${esc(summaryText(S, EV, name, '', ''))}</pre>
         </section>
       </div>
+      ${collectPanel()}
       <section class="panel">
         <div class="panel-head"><h2>비교함</h2><span class="note">내가 저장한 계획과 받은 링크가 이 기기에 쌓여요 · 점수는 각 계획의 조건으로 다시 계산</span></div>
         ${rows.length ? `<div class="scroll-x"><table class="tbl"><thead><tr><th>이름</th><th>구분</th><th>저장 시각</th><th class="num">점수</th><th class="num">운전</th><th>숙소</th><th>포함</th><th>메모</th><th></th></tr></thead><tbody>
@@ -624,6 +628,63 @@
         </tbody></table></div>` : '<p class="note">아직 비어 있어요. 위에서 저장하거나, 다른 사람이 보낸 링크를 열면 여기에 쌓여요.</p>'}
       </section>
     </div>`;
+  }
+
+  /* ───── 모두의 선택 (구글 시트) ───── */
+  const fmtTime = t => { const d = new Date(+t || t); return isNaN(d) ? '' : d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+  const dayLine = (ev, di) => ev.days[di].rows.filter(r => r.type === 'act').map(r => `${hm(r.v.start)} ${shortName(r.p)}`).join(' → ');
+  async function postCollect(payload) {
+    try {
+      const r = await fetch(COLLECT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' });
+      return await r.json().catch(() => ({ ok: r.ok }));
+    } catch (e) { return { ok: false, error: String(e) }; }
+  }
+  async function loadCollect() {
+    if (!COLLECT) return;
+    ui.collect = Object.assign({}, ui.collect, { status: 'loading' });
+    if (tab === 'save') render();
+    try {
+      const r = await fetch(COLLECT + (COLLECT.includes('?') ? '&' : '?') + 't=' + Date.now(), { redirect: 'follow' });
+      const j = await r.json();
+      if (!j || j.ok === false) throw new Error((j && j.error) || '응답 오류');
+      ui.collect = { status: 'ok', items: Array.isArray(j.items) ? j.items : [], err: '', t: Date.now() };
+    } catch (e) { ui.collect = { status: 'err', items: ui.collect.items || [], err: e.message || String(e), t: Date.now() }; }
+    if (tab === 'save') render();
+  }
+  function collectPanel() {
+    if (!COLLECT) {
+      return `<section class="panel"><div class="panel-head"><h2>모두의 선택</h2><span class="pill info">아직 연결 전</span></div>
+        <p class="note">구글 시트를 하나 연결하면, 누가 "저장"을 누를 때마다 그 사람의 선택이 이 표로 모여요. 누가 어느 귤밭·카트·마라도 항구·숙소를 골랐는지 한눈에 보여요. 연결은 5분이면 돼요: <a href="${REPO}collect/README.md" target="_blank" rel="noopener">연결 방법</a></p></section>`;
+    }
+    const c = ui.collect;
+    const rows = (c.items || []).map(it => { const dec = decodeState(String(it.code || '')); return dec ? { it, dec, e: E.evaluate(dec.st) } : null; }).filter(Boolean);
+    rows.sort((a, b) => (+b.it.t || 0) - (+a.it.t || 0));
+    const latest = {};
+    rows.forEach(r => { const k = String(r.it.name || '이름 없음').trim(); if (!latest[k]) latest[k] = r; });
+    const people = Object.values(latest);
+    const pickOf = (st, test) => { const out = []; st.days.forEach((d, di) => d.forEach(x => { const p = PL[x.p]; if (p && test(p)) out.push(`${esc(shortName(p))} <span class="muted">${di + 1}일</span>`); })); return out.join('<br>') || '<span class="muted">—</span>'; };
+    const other = st => st.days.flat().map(x => PL[x.p]).filter(p => p && !WISH.some(w => w.test(p))).map(p => esc(shortName(p))).join(', ') || '<span class="muted">—</span>';
+    let body;
+    if (c.status === 'loading' && !rows.length) body = '<p class="note">불러오는 중…</p>';
+    else if (!people.length) body = c.status === 'err' ? '' : '<p class="note">아직 아무도 저장하지 않았어요. 위에서 이름을 적고 저장하면 첫 줄이 생겨요.</p>';
+    else {
+      body = `<div class="scroll-x"><table class="tbl"><thead><tr><th>이름</th><th class="num">점수</th><th>숙소</th>${WISH.map(w => `<th>${esc(w.label)}</th>`).join('')}<th>그 밖</th><th>메모</th><th></th></tr></thead><tbody>
+        ${people.map(r => `<tr><td><b>${esc(r.it.name || '이름 없음')}</b><div class="small muted">${esc(fmtTime(r.it.t))}</div></td><td class="num">${fmt1(r.e.score)}</td><td class="small">${esc(lodgeText(r.dec.st))}</td>${WISH.map(w => `<td class="small">${pickOf(r.dec.st, w.test)}</td>`).join('')}<td class="small">${other(r.dec.st)}</td><td class="small">${esc(r.it.memo || '')}</td><td><button class="btn small" type="button" data-act="collect-open" data-code="${esc(r.it.code)}">열기</button></td></tr>`).join('')}
+        </tbody></table></div>
+        ${rows.length > people.length ? `<details style="margin-top:10px"><summary class="btn small">전체 기록 ${rows.length}건</summary><div class="grid" style="gap:4px;margin-top:8px">${rows.map(r => `<div class="row small"><b>${esc(r.it.name || '이름 없음')}</b><span class="muted">${esc(fmtTime(r.it.t))}</span><span class="mono">${fmt1(r.e.score)}점</span><button class="btn small" type="button" data-act="collect-open" data-code="${esc(r.it.code)}">열기</button></div>`).join('')}</div></details>` : ''}`;
+    }
+    return `<section class="panel">
+      <div class="panel-head"><h2>모두의 선택</h2><div class="row"><span class="note">${c.status === 'ok' && c.t ? '갱신 ' + new Date(c.t).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : c.status === 'loading' ? '불러오는 중…' : ''}</span><button class="btn small" type="button" data-act="collect-refresh">새로고침</button></div></div>
+      <p class="note" style="margin-bottom:8px">사람마다 가장 최근에 저장한 계획이에요. 점수는 각자 고른 조건으로 다시 계산했어요. 잘못 올린 줄은 구글 시트에서 지우면 사라져요.</p>
+      ${c.status === 'err' ? `<div class="callout warn small" style="margin-bottom:8px">목록을 못 불러왔어요 (${esc(c.err)}). 잠시 뒤 새로고침해 보세요.</div>` : ''}${body}</section>`;
+  }
+  function verifyPanel() {
+    const text = window.JEJU_VERIFY ? window.JEJU_VERIFY.build(J) : '';
+    return `<section class="panel" style="display:grid;gap:8px">
+      <div class="panel-head" style="margin-bottom:0"><h3>다른 AI에게 정보 확인 맡기기</h3><div class="row"><button class="btn primary small" type="button" data-act="copy-verify">프롬프트 복사</button><a class="btn small" href="${REPO}VERIFY_PROMPT.md" target="_blank" rel="noopener">GitHub에서 보기</a></div></div>
+      <p class="note">배 시간표, 귤밭 ${J.PLACES.filter(p => p.cat === 'tang').length}곳의 12/28~30 운영 여부, 방어 출조선, 카트, 숙소 가격 등을 인터넷에서 다시 확인하게 하는 지시문이에요(${text.split('\n').length}줄). 웹 검색이 되는 AI에 붙여 넣고, 돌아온 JSON을 Claude에게 주면 플래너 데이터에 반영할 수 있어요.</p>
+      <textarea id="verifyText" class="verify-text" readonly rows="8" aria-label="확인 요청 프롬프트">${esc(text)}</textarea>
+    </section>`;
   }
 
   /* ───── 모달 ───── */
@@ -729,7 +790,7 @@
     window.scrollTo(0, y);
     const det = $('#cfgDetails'); if (det) det.addEventListener('toggle', () => { ui.cfgOpen = det.open; });
   }
-  function setTab(t) { tab = t; LS.set(KEY.tab, t); render(); window.scrollTo(0, 0); }
+  function setTab(t) { tab = t; LS.set(KEY.tab, t); render(); window.scrollTo(0, 0); if (t === 'save' && COLLECT && Date.now() - ui.collect.t > 30000) loadCollect(); }
 
   /* ───── 동작 ───── */
   const st2 = () => clone(S);
@@ -780,16 +841,25 @@
     'map-sel': b => { ui.mapSel = b.dataset.id; render(); },
     'modal-close': () => closeModal(),
     'modal-back': (b, e) => { if (e.target === b) closeModal(); },
-    'save-share': () => {
+    'save-share': async () => {
       const name = ($('#saveName').value || '').trim(), memo = ($('#saveMemo').value || '').trim();
       if (!name) { toast('이름을 적어 주세요 (누가 고른 계획인지 보여요)'); $('#saveName').focus(); return; }
-      LS.set(KEY.name, name);
+      LS.set(KEY.name, name); ui.saveName = name; ui.saveMemo = memo;
       const code = encodeState(S, name, memo);
       boxSave({ code, name, memo, t: Date.now(), kind: 'saved' });
       ui.shareLink = baseUrl() + '#p=' + code;
       render();
       copyText(ui.shareLink, 'shareLink');
+      if (COLLECT) {
+        const r = await postCollect({ name, memo, code, link: ui.shareLink, score: Math.round(EV.score * 10) / 10, lodge: lodgeText(S),
+          cover: coverage(S).filter(c => c.on).map(c => c.w.label).join(', '), d1: dayLine(EV, 0), d2: dayLine(EV, 1), d3: dayLine(EV, 2) });
+        toast(r.ok ? '모두의 선택에 올렸어요' : '모두의 선택에 못 올렸어요 — 링크는 만들어졌어요');
+        loadCollect();
+      }
     },
+    'collect-refresh': () => loadCollect(),
+    'collect-open': b => { const dec = decodeState(b.dataset.code); if (!dec) { toast('이 기록을 읽지 못했어요'); return; } if (!viewing) LS.set(KEY.mine, S); viewing = { name: dec.name, t: dec.t, memo: dec.memo }; LS.set(KEY.viewing, viewing); commit(dec.st, `${dec.name || '누군가'}님 계획 열기`); setTab('plan'); },
+    'copy-verify': () => { const t = window.JEJU_VERIFY ? window.JEJU_VERIFY.build(J) : ''; copyText(t, 'verifyText'); },
     'copy-link': () => copyText(ui.shareLink, 'shareLink'),
     'native-share': async () => { try { await navigator.share({ title: '제주 동선', text: summaryText(S, EV, LS.get(KEY.name, ''), '', ''), url: ui.shareLink }); } catch (e) { /* 사용자가 취소 */ } },
     'copy-text': () => { const name = ($('#saveName') ? $('#saveName').value.trim() : '') || LS.get(KEY.name, ''); const t = summaryText(S, EV, name, $('#saveMemo') ? $('#saveMemo').value.trim() : '', ui.shareLink || ''); const ta = $('#sumText'); if (ta) ta.value = t; copyText(t, 'sumText'); },
@@ -812,6 +882,7 @@
   };
   document.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; const f = ACT[b.dataset.act]; if (f) f(b, e); });
   document.addEventListener('change', e => { const el = e.target.closest('[data-chg]'); if (!el) return; const f = CHG[el.dataset.chg]; if (f) f(el, e); });
+  document.addEventListener('input', e => { if (e.target.id === 'saveName') ui.saveName = e.target.value; else if (e.target.id === 'saveMemo') ui.saveMemo = e.target.value; });
   let qTimer = null;
   document.addEventListener('input', e => { const el = e.target.closest('[data-inp="pickQ"]'); if (!el) return; clearTimeout(qTimer); qTimer = setTimeout(() => { ui.pickQ = el.value; const pos = el.selectionStart; render(); const n = $('#pickQ'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* 무시 */ } } }, 250); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modalRoot').innerHTML) closeModal(); });
