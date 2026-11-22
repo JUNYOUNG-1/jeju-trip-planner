@@ -11,7 +11,7 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
   const KEY = { cur: 'jeju.v1.current', mine: 'jeju.v1.mine', box: 'jeju.v1.box', tab: 'jeju.v1.tab', theme: 'jeju.v1.theme', name: 'jeju.v1.name', viewing: 'jeju.v1.viewing', mode: 'jeju.v1.mode' };
-  const DEFAULT_CFG = { arr: '10:00', pick: 50, dep: '17:00', ret: 90, start: '08:30', pace: 1, meals: true };
+  const DEFAULT_CFG = { arr: '13:05', pick: 50, dep: '15:20', ret: 90, start: '08:30', pace: 1, meals: true };
   const WISH = [
     { k: 'tang', label: '귤밭', test: p => p.cat === 'tang' },
     { k: 'kart', label: '카트', test: p => p.cat === 'kart' },
@@ -32,7 +32,7 @@
   ];
   const TABS = [
     { id: 'plan', label: '일정' }, { id: 'map', label: '지도·동네' }, { id: 'pick', label: '체험 고르기' },
-    { id: 'best', label: '베스트 동선 10' }, { id: 'stay', label: '숙소' }, { id: 'info', label: '배편·정보' }, { id: 'save', label: '저장·공유' }
+    { id: 'best', label: '추천 동선' }, { id: 'stay', label: '숙소' }, { id: 'info', label: '배편·정보' }, { id: 'save', label: '저장·공유' }
   ];
   const DAYVAR = ['--d1', '--d2', '--d3'];
   const COLLECT = String((window.JEJU_CONFIG && window.JEJU_CONFIG.collectUrl) || '').trim();
@@ -43,7 +43,7 @@
 
   /* ───── 상태 ───── */
   function planToState(pl, cfg) {
-    return { v: 1, cfg: Object.assign({}, cfg || DEFAULT_CFG), lodge: pl.lodge.slice(), same: pl.lodge[0] === pl.lodge[1], lodgeLk: false, from: pl.id,
+    return { v: 1, cfg: Object.assign({}, cfg || DEFAULT_CFG), lodge: pl.lodge.slice(), same: pl.lodge[0] === pl.lodge[1], lodgeLk: !!pl.lodgeLk, from: pl.id,
       days: pl.days.map(d => d.map(x => ({ u: uid(), p: (J.ALIAS && J.ALIAS[x.p]) || x.p, o: x.o ? Object.assign({}, x.o) : undefined, lk: {} }))) };
   }
   function sanitize(st) {
@@ -64,7 +64,7 @@
   if (!TABS.some(t => t.id === tab)) tab = 'plan';
   let viewing = LS.get(KEY.viewing, null);
   let mode = LS.get(KEY.mode, 'easy') === 'pro' ? 'pro' : 'easy';
-  const ui = { pickCat: 'tang', pickArea: 'all', pickTags: [], pickQ: '', pickHideClosed: false, mapDay: 0, mapAll: true, mapSel: null, bestSort: 'score', cfgOpen: false, shareLink: '', saveName: null, saveMemo: '', collect: { status: 'idle', items: [], err: '', t: 0 } };
+  const ui = { pickCat: 'tang', pickArea: 'all', pickTags: [], pickQ: '', pickHideClosed: false, mapDay: 0, mapAll: true, mapSel: null, bestSort: 'pick', cfgOpen: false, shareLink: '', saveName: null, saveMemo: '', collect: { status: 'idle', items: [], err: '', t: 0 } };
   let CACHE = {};
   const sig = () => JSON.stringify([S.cfg, S.lodge, S.same, S.days.map(d => d.map(x => [x.p, x.o || 0]))]);
   function cached(key, fn) { const k = key + '|' + sig(); if (!(k in CACHE)) CACHE[k] = fn(); return CACHE[k]; }
@@ -189,7 +189,7 @@
         <button class="btn primary" type="button" data-act="optimize">자동 최적화</button>
         <button class="btn" type="button" data-act="order-all">하루 순서만 정리</button>
         <button class="btn" type="button" data-act="undo" ${undoStack.length ? '' : 'disabled'}>되돌리기</button>
-        <button class="btn" type="button" data-act="tab" data-tab="best">베스트 동선에서 고르기</button>
+        <button class="btn" type="button" data-act="tab" data-tab="best">추천 동선에서 고르기</button>
         <button class="btn ghost" type="button" data-act="clear-plan">전부 비우기</button>
       </div>
       <div style="margin-top:12px">
@@ -332,9 +332,23 @@
   function ezToggle(w, seed) {
     if (!w) return;
     const n = ezBase();
+    // 고른 조합과 똑같은 추천 동선이 있고 그쪽이 더 좋으면 그걸 출발점으로 쓴다
+    const wantKey = st => WISH.concat(EXTRA).map(x => (findWish(st, x.test) ? 1 : 0)).join('');
+    const better = st => {
+      let best = st, bo = E.evaluate(st).obj;
+      const key = wantKey(st);
+      J.PLANS.forEach(pl => {
+        const s2 = planToState(pl, st.cfg);
+        s2.lodge = st.lodge.slice(); s2.same = st.same; s2.lodgeLk = st.lodgeLk;
+        if (wantKey(s2) !== key) return;
+        const o = E.evaluate(s2).obj;
+        if (o > bo) { best = s2; bo = o; }
+      });
+      return best;
+    };
     if (findWish(n, w.test)) {
       n.days = n.days.map(d => d.filter(x => !(PL[x.p] && w.test(PL[x.p]))));
-      ezBuild(n, `${w.label} 뺌`);
+      ezBuild(better(n), `${w.label} 뺌`);
       return;
     }
     // 가장 좋은 날·자리에 먼저 끼워 넣고(3일차엔 배 일정 제외) 그다음 전체를 다시 짠다
@@ -347,7 +361,16 @@
       start = n;
     }
     start.days.forEach(d => d.forEach(x => { if (!x.u) x.u = uid(); if (!x.lk) x.lk = {}; }));
-    ezBuild(start, `${w.label} 넣음`);
+    // 우도를 넣을 때 같은 날 다른 배 일정이 있으면, 성산 08:00 첫배로 먼저 다녀오는 배치도 따져 본다
+    if (seed === 'u_seongsan') {
+      const base = clone(n);
+      const di = base.days.findIndex((d, i) => i < 2 && d.some(x => PL[x.p] && PL[x.p].sea));
+      if (di >= 0) {
+        base.days[di].unshift({ u: uid(), p: seed, o: { slot: '08:00', stay: 150 }, lk: {} });
+        if (E.evaluate(base).obj > E.evaluate(start).obj) start = base;
+      }
+    }
+    ezBuild(better(start), `${w.label} 넣음`);
   }
   function ezTile(w, st) {
     const f = findWish(st, w.test);
@@ -396,7 +419,7 @@
       </div>
       ${busy ? '<div class="progress" id="ezProg"><i></i></div>' : ''}
       <div class="days">${[0, 1, 2].map(ezDay).join('')}</div>
-      <p class="note" style="margin-top:12px">시간·순서·배 시간을 하나씩 고치려면 <button type="button" class="linkbtn" data-act="mode" data-m="pro">자세히 고치기</button>, 미리 짜 둔 10가지 중에서 고르려면 <button type="button" class="linkbtn" data-act="tab" data-tab="best">베스트 동선 10</button>.</p>
+      <p class="note" style="margin-top:12px">시간·순서·배 시간을 하나씩 고치려면 <button type="button" class="linkbtn" data-act="mode" data-m="pro">자세히 고치기</button>, 미리 짜 둔 안에서 고르려면 <button type="button" class="linkbtn" data-act="tab" data-tab="best">추천 동선</button>.</p>
     </section>`;
   }
   function ezDay(di) {
@@ -682,7 +705,7 @@
     if (ui.bestSort === 'score') arr.sort((a, b) => b.e.score - a.e.score);
     return `<div class="view">
       <section class="panel">
-        <div class="panel-head"><h2>베스트 동선 10</h2>
+        <div class="panel-head"><h2>추천 동선</h2>
           <div class="chips"><button class="chip" type="button" data-act="best-sort" data-s="score" aria-pressed="${ui.bestSort === 'score'}">점수순</button><button class="chip" type="button" data-act="best-sort" data-s="pick" aria-pressed="${ui.bestSort === 'pick'}">추천 순서</button></div></div>
         <p class="note">점수는 지금 "여행 조건"(도착 ${S.cfg.arr} · 귀국편 ${S.cfg.dep})으로 실시간 계산해요. 불러온 뒤 자유롭게 고치고, 바뀐 점수를 확인하세요. 지금 내 계획은 <b>${fmt1(EV.score)}점</b>이에요.</p>
         <div class="callout acc" style="margin-top:10px;display:grid;gap:8px">
@@ -727,12 +750,12 @@
     const curKey = S.lodge.join('/');
     return `<div class="view">
       <section class="panel">
-        <div class="panel-head"><h2>숙소 동네 비교</h2><span class="note">지금 일정은 그대로 두고 숙소만 바꾼 뒤, 하루 순서를 다시 맞춘 결과</span></div>
+        <div class="panel-head"><h2>숙소 동네 비교</h2><span class="note">지금 일정은 그대로 두고 숙소만 바꾼 뒤, 하루 순서를 다시 맞춘 결과</span></div>${J.LODGE[S.lodge[0]] && J.LODGE[S.lodge[0]].booked ? `<div class="callout acc" style="margin-bottom:12px"><b>${esc(J.LODGE[S.lodge[0]].label)}</b>로 예약돼 있어요. 아래 표는 다른 동네였다면 어땠을지 참고용이에요.</div>` : ""}
         <div class="scroll-x"><table class="tbl">
           <thead><tr><th>순위</th><th>동네 (2박)</th><th class="num">점수</th><th class="num">지금 대비</th><th class="num">총 운전</th><th class="num">1·2·3일차 운전</th><th class="num">2일차 출발</th><th>가격대</th><th></th></tr></thead>
           <tbody>${rows.map((r, i) => `<tr class="${curKey === r.z + '/' + r.z ? 'cur' : ''}"><td class="num">${i + 1}</td><td><b>${esc(J.LODGE[r.z].label)}</b></td><td class="num">${fmt1(r.score)}</td><td class="num">${deltaHtml(r.score - EV.score)}</td><td class="num">${dstr(r.travel)}</td><td class="num">${r.perDay.map(m => m + '분').join(' · ')}</td><td class="num">${hm(r.early)}</td><td>${esc(J.LODGE[r.z].tier)}</td><td><button class="btn small" type="button" data-act="lodge-set" data-z="${r.z}">이 동네로</button></td></tr>`).join('')}</tbody>
         </table></div>
-        <p class="note" style="margin-top:8px">가격대(12/28 체크인·2인 1박, 11/15 예약 사이트 표시가 기준): ₩ 5~12만 · ₩₩ 12~25만 · ₩₩₩ 25만 이상. 실제 요금은 예약 사이트에서 확인하세요. 한 곳에서 2박이 어렵다면 "베스트 동선 10"의 숙소 나누기 안(사계 → 성산)과 비교해 보세요.</p>
+        <p class="note" style="margin-top:8px">가격대(12/28 체크인·2인 1박, 11/15 예약 사이트 표시가 기준): ₩ 5~12만 · ₩₩ 12~25만 · ₩₩₩ 25만 이상. 실제 요금은 예약 사이트에서 확인하세요. 숙소는 스탠포드 호텔(애월)로 예약돼 있어 맨 위에 표시돼요.</p>
       </section>
       <div class="zones">${J.LORDER.map(z => { const L = J.LODGE[z]; return `<div class="zone-card"><h4>${esc(L.label)} <span class="tag">${esc(L.tier)}</span></h4><p class="small"><span style="color:var(--ok)">장점</span> ${esc(L.pros)}</p><p class="small"><span style="color:var(--warn)">단점</span> ${esc(L.cons)}</p><p class="note">${L.ex.map(esc).join(' · ')}</p></div>`; }).join('')}</div>
     </div>`;
@@ -1078,7 +1101,7 @@
       const pickIds = { tang: 't_eunha', kart: 'k_981', marado: 'm_songak', udo: 'u_seongsan', fish: 'f_gm_am', olle: 'o10a', flower: 'x_camellia', spa: 'x_spa', bangeo: 'x_bangeo' };
       const ids = ks.map(k => pickIds[k]).filter(Boolean);
       if (!ids.length) { toast('하나 이상 골라 주세요'); return; }
-      const n = { v: 1, cfg: Object.assign({}, S.cfg), lodge: ['SEO', 'SEO'], same: true, lodgeLk: false, days: [[], [], []] };
+      const n = { v: 1, cfg: Object.assign({}, S.cfg), lodge: S.lodge.slice(), same: S.same, lodgeLk: S.lodgeLk, days: [[], [], []] };
       ids.forEach((id, i) => n.days[i % 3].push({ u: uid(), p: id, lk: {} }));
       openOptimize(sanitize(n), '이 조합으로 자동 짜기');
       setTimeout(() => runOptimize(), 30);

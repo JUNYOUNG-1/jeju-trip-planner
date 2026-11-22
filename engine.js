@@ -32,7 +32,7 @@
 
   const AIRPORT = { id: 'AIRPORT', name: '제주공항 · 렌터카', zone: 'AIR', lat: 33.5066, lng: 126.4929, kind: 'airport' };
   const LP = {};
-  J.LORDER.forEach(z => { const L = J.LODGE[z]; LP[z] = { id: 'L_' + z, name: L.label + ' 숙소', zone: z, lat: L.lat, lng: L.lng, kind: 'lodge' }; });
+  J.LORDER.forEach(z => { const L = J.LODGE[z]; LP[z] = { id: 'L_' + z, name: L.label + ' 숙소', zone: L.zone || z, lat: L.lat, lng: L.lng, kind: 'lodge' }; });
 
   function hav(a, b) {
     const R = 6371, r = Math.PI / 180;
@@ -145,7 +145,7 @@
 
     if (di > 0 && items.length) {
       const p0 = PL[items[0].p];
-      if (p0.slot && p0.early) {
+      if (p0.slot && (p0.early || (items[0].o && items[0].o.slot))) {
         const tr = travel(loc, p0);
         const outs = p0.slot.out.map(tm);
         const pin = items[0].o && items[0].o.slot ? tm(items[0].o.slot) : null;
