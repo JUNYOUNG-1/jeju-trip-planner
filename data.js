@@ -254,18 +254,18 @@
   /* ───────── 베스트 동선 10 (알고리즘이 실시간 채점) ───────── */
   const it = (p, o) => (o ? { p, o } : { p });
   const PLANS = [
-    { id: 'm1', title: '추천 · 마라도 + 모슬포', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차 숙소 근처 구엄 올레와 애월 귤밭, 2일차 마라도(10:00 배)에서 짜장면 → 은하 귤밭 → 송악산 올레 → 모슬포 방어회, 3일차 한담 해안과 9.81파크 카트 뒤 공항.', pros: '마라도·모슬포·송악산이 한 동네라 2일차 이동이 짧다. 필수(귤밭·올레)와 모슬포를 모두 넣고도 가장 여유 있다.', cons: '우도는 빠진다. 카트를 안 타면 3일차를 귤밭·카페로 바꾸면 된다.',
-      days: [[it('o16'), it('t_jsaem')], [it('m_songak'), it('t_eunha'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('k_981')]] },
+    { id: 'm1', title: '추천 · 마라도 + 모슬포', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차는 밤샘 뒤라 애월 귤밭만 들르고 일찍 쉬기. 2일차 마라도(10:00 배)에서 짜장면 → 은하 귤밭 → 송악산 올레 → 모슬포 방어회. 3일차 한담 해안과 9.81파크 카트 뒤 공항.', pros: '마라도·모슬포·송악산이 한 동네라 2일차 이동이 짧다. 필수(귤밭·올레)와 모슬포를 다 넣고도 가장 여유 있다.', cons: '우도는 빠진다. 카트를 안 타면 3일차를 귤밭·카페로 바꾸면 된다.',
+      days: [[it('t_jsaem')], [it('m_songak'), it('t_eunha'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('k_981')]] },
     { id: 'm2', title: '마라도 + 모슬포 · 카트 없이', lodge: ['STF', 'STF'], lodgeLk: true, concept: '추천안과 같고, 3일차는 카트 대신 한담 해안 산책과 공항 옆 도두봉 올레만 걷고 여유 있게 공항으로.', pros: '마지막 날이 가볍다. 올레를 두 번 걷는다.', cons: '우도·카트가 빠진다.',
-      days: [[it('o16'), it('t_jsaem')], [it('m_songak'), it('t_eunha'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('o17')]] },
-    { id: 'm3', title: '마라도 + 우도 둘 다', lodge: ['STF', 'STF'], lodgeLk: true, concept: '2일차 06시대에 출발해 성산 08:00 첫배로 우도(2시간 45분) → 송악산 13:30 배로 마라도(짜장면) → 송악산 올레 → 모슬포 방어회. 1·3일차는 추천안과 같다.', pros: '마라도와 우도를 모두 간다.', cons: '2일차 06:15 출발·20시 넘어 귀가, 운전만 4시간 반. 하루에 배를 두 번 타서 바람이 불면 둘 다 취소될 수 있다. 마라도 체류 1시간 30분.',
-      days: [[it('o16'), it('t_jsaem')], [it('u_seongsan', { slot: '08:00', stay: 150 }), it('m_songak'), it('o10a'), it('x_bangeo')], [it('k_981'), it('x_handam')]] },
-    { id: 'm4', title: '우도만 · 첫날 모슬포', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차 공항에서 바로 송악산 올레와 모슬포 방어회, 2일차 우도(09:30 배, 3시간) → 성산일출봉 → 성산 귤밭, 3일차 9.81파크와 애월 귤밭.', pros: '우도를 넉넉히 본다. 모슬포는 첫날 저녁에.', cons: '마라도가 빠지고, 2일차 우도 왕복 운전이 길다(편도 80분).',
-      days: [[it('o10a'), it('x_bangeo')], [it('u_seongsan', { slot: '09:30', stay: 180 }), it('x_ilchul'), it('t_901')], [it('k_981'), it('t_jsaem')]] },
-    { id: 'm5', title: '마라도 + 동백 · 아침 느긋하게', lodge: ['STF', 'STF'], lodgeLk: true, concept: '2일차 오전 카멜리아힐 동백을 보고 11:50 배로 마라도(섬 1시간 50분), 송악산 올레 뒤 모슬포 방어회. 1·3일차는 추천안과 같다.', pros: '2일차 아침이 느긋하고 12월 동백을 본다.', cons: '귤밭은 1일차 한 번뿐이고 우도는 빠진다.',
-      days: [[it('o16'), it('t_jsaem')], [it('x_camellia'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('k_981')]] },
-    { id: 'm6', title: '귤밭 두 번 · 운진항 마라도', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차 애월 탐나는농장 귤밭과 한담 해안, 2일차 운진항 11:10 배로 마라도(섬 2시간 50분) → 송악산 올레 → 모슬포 방어회, 3일차 구엄 올레와 제이샘 귤밭.', pros: '마라도에 오래 머물고 귤밭을 두 번 간다.', cons: '우도·카트가 빠진다.',
-      days: [[it('t_tamna'), it('x_handam')], [it('m_unjin'), it('o10a'), it('x_bangeo')], [it('o16'), it('t_jsaem')]] }
+      days: [[it('t_jsaem')], [it('m_songak'), it('t_eunha'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('o17')]] },
+    { id: 'm3', title: '마라도 + 우도 둘 다', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차는 귤밭만 들르고 쉬기. 2일차 06시대에 출발해 성산 08:00 첫배로 우도(2시간 45분) → 송악산 13:30 배로 마라도(짜장면) → 송악산 올레 → 모슬포 방어회. 3일차 9.81파크와 한담 해안.', pros: '마라도와 우도를 모두 간다.', cons: '2일차 06:15 출발·20시 넘어 귀가, 운전만 4시간 반. 하루에 배를 두 번 타서 바람이 불면 둘 다 취소될 수 있다. 마라도 체류 1시간 30분.',
+      days: [[it('t_jsaem')], [it('u_seongsan', { slot: '08:00', stay: 150 }), it('m_songak'), it('o10a'), it('x_bangeo')], [it('k_981'), it('x_handam')]] },
+    { id: 'm4', title: '우도만 · 첫날 모슬포', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차 공항에서 은하 귤밭을 거쳐 모슬포 방어회로 저녁, 2일차 우도(09:30 배, 3시간) → 성산일출봉 → 성산 귤밭, 3일차 숙소 앞 구엄 올레와 9.81파크.', pros: '우도를 넉넉히 본다. 모슬포는 첫날 저녁에 간다.', cons: '마라도가 빠지고, 2일차 우도 왕복 운전이 길다(편도 80분).',
+      days: [[it('t_eunha'), it('x_bangeo')], [it('u_seongsan', { slot: '09:30', stay: 180 }), it('x_ilchul'), it('t_901')], [it('o16'), it('k_981')]] },
+    { id: 'm5', title: '마라도 + 동백 · 아침 느긋하게', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차는 귤밭만 들르고 쉬기. 2일차 오전 카멜리아힐 동백을 보고 11:50 배로 마라도(섬 1시간 50분), 송악산 올레 뒤 모슬포 방어회. 3일차 한담 해안과 9.81파크.', pros: '2일차 아침이 느긋하고 12월 동백을 본다.', cons: '귤밭은 1일차 한 번뿐이고 우도는 빠진다.',
+      days: [[it('t_jsaem')], [it('x_camellia'), it('m_songak'), it('o10a'), it('x_bangeo')], [it('x_handam'), it('k_981')]] },
+    { id: 'm6', title: '귤밭 두 번 · 운진항 마라도', lodge: ['STF', 'STF'], lodgeLk: true, concept: '1일차 애월 탐나는농장 귤밭만 들르고 쉬기, 2일차 운진항 11:10 배로 마라도(섬 2시간 50분) → 송악산 올레 → 모슬포 방어회, 3일차 숙소 앞 구엄 올레와 제이샘 귤밭.', pros: '마라도에 오래 머물고 귤밭을 두 번 간다.', cons: '우도·카트가 빠진다.',
+      days: [[it('t_tamna')], [it('m_unjin'), it('o10a'), it('x_bangeo')], [it('o16'), it('t_jsaem')]] }
   ];
 
   /* 기본 계획 = 베스트 1 */
